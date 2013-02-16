@@ -10,5 +10,5 @@ Fedora Drafts
 
 Fedora Dev Repos
 ----------------
-* [fedora-18](http://repos.fedorapeople.org/repos/siwinski/php-composer/fedora-php-composer.repo)
-* [epel-6](http://repos.fedorapeople.org/repos/siwinski/php-composer/epel-php-composer.repo)
+* [fedora](http://repos.fedorapeople.org/repos/siwinski/php-composer/fedora-php-composer.repo)
+* [epel](http://repos.fedorapeople.org/repos/siwinski/php-composer/epel-php-composer.repo)
