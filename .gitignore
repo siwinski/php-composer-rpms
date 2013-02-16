@@ -1,0 +1,9 @@
+*.gz
+*.tgz
+*.zip
+*.rpm
+.project
+rpmbuild
+
+# Ignore all directories
+*/
