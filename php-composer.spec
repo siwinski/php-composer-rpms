@@ -72,6 +72,9 @@ Requires:      php-xsl
 Requires:      php-zip
 Requires:      php-zlib
 
+# Common package naming (php-composervendor-composerproject)
+Provides:      php-composer-composer = %{version}-%{release}
+# Virtual provide
 Provides:      php-composer(%{composer_vendor}/%{composer_project}) = %{version}
 
 %description
