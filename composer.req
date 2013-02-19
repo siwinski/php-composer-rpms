@@ -1,1 +1,123 @@
 #!/usr/bin/python
+
+"""
+Automatic requires generator for PHP Composer libraries.
+
+Taken from composer.json.  See http://getcomposer.org/doc/04-schema.md for details.
+"""
+# Copyright 2013 Shawn Iwinski <shawn.iwinski@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+import json
+import os
+import re
+import sys
+
+RE_VERSION = re.compile(r'\s*([<>=~!]{0,2})\s*([0-9][0-9\.\*]*(\.\*)?)\s*')
+
+
+def main():
+    deps = ['php-composer(composer/composer)']
+
+    paths = [path.rstrip() for path in sys.stdin.readlines()]
+
+    for path in paths:
+        if not path.endswith('composer.json'):
+            continue
+
+        fh = open(path)
+        metadata = json.load(fh)
+        fh.close()
+
+        if 'require' in metadata:
+            for name, version in metadata['require'].iteritems():
+                # php
+                if name == 'php':
+                    require = 'php-common'
+                    deps += process_version(require, version)
+                # ext-*
+                elif name.startswith('ext-'):
+                    # TODO: We should be able to handle some...
+                    print >> sys.stderr, 'WARNING: Composer auto-require: PHP extensions not handled (name="%s" version="%s")' % (name, version)
+                # other
+                else:
+                    require = 'php-composer(' + name + ')'
+                    deps += process_version(require, version)
+
+        # Include require-dev?
+
+        # Include suggest?
+
+        print '\n'.join(deps)
+
+
+def process_version(require, version):
+    deps = []
+
+    if version is None or version in ['', '*']:
+        deps.append(require)
+    else:
+        for version_part in version.split(','):
+            m = re.match(RE_VERSION, version_part)
+
+            if m:
+                deps += process_version_part(require, m.group(1), m.group(2))
+            else:
+                print >> sys.stderr, 'ERROR: Composer auto-require: Invalid version for require "%s": "%s"' % (require, version)
+
+    return deps
+
+
+def process_version_part(require, operator, version):
+    deps = []
+
+    # Any version
+    if not version or version == '*':
+        deps.append(require)
+
+    # "Simple" versions
+    elif operator in ['>', '>=', '<', '<=', '=']:
+        deps.append(' '.join([require, operator, version]))
+
+    # Next Significant Release (Tilde Operator)
+    # Wilcard versions
+    elif operator == '~' or version.endswith('.*'):
+        # Min version
+        deps.append(' '.join([require, '>=', version.replace('.*', '.0')]))
+
+    # Max version
+        version_parts = version.split('.')
+        version_parts[-1] = '0'
+        version_parts[-2] = str(int(version_parts[-2]) + 1)
+        deps.append(' '.join([require, '<', '.'.join(version_parts)]))
+
+    # Not equal
+    elif operator == '!=':
+        print >> sys.stderr, 'WARNING: Composer auto-require: Ignoring "!=" dependency (require="%s" version="%s")' % (require, version)
+
+    # Exact version
+    else:
+        deps.append(' '.join([require, '=', version]))
+
+    return deps
+
+
+if __name__ == '__main__':
+    main()
