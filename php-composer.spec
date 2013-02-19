@@ -15,7 +15,9 @@
 %global jsonlint_max_ver   2.0.0
 
 %global jsonschema_min_ver 1.1.0
-%global jsonschema_max_ver 1.2.0
+# DEBUG
+#%global jsonschema_max_ver 1.2.0
+%global jsonschema_max_ver 2.0
 
 %global symfony_min_ver    2.1.0
 %global symfony_max_ver    3.0.0
@@ -55,7 +57,6 @@ Requires:      php-pear(pear.symfony.com/Process) <  %{symfony_max_ver}
 # phpci
 Requires:      php-curl
 Requires:      php-date
-Requires:      php-filter
 Requires:      php-hash
 Requires:      php-iconv
 Requires:      php-json
@@ -63,7 +64,6 @@ Requires:      php-libxml
 Requires:      php-mbstring
 Requires:      php-openssl
 Requires:      php-pcre
-Requires:      php-phar
 Requires:      php-reflection
 Requires:      php-simplexml
 Requires:      php-spl
@@ -71,6 +71,10 @@ Requires:      php-tokenizer
 Requires:      php-xsl
 Requires:      php-zip
 Requires:      php-zlib
+%if 0%{?fedora}
+Requires:      php-filter
+Requires:      php-phar
+%endif
 
 # Common package naming (php-composervendor-composerproject)
 Provides:      php-composer-composer = %{version}-%{release}
@@ -138,5 +142,5 @@ install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 
 
 %changelog
-* Fri Feb 15 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.1.alpha6
+* Mon Feb 18 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.1.alpha6
 - Initial package
