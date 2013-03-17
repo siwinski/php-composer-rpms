@@ -99,13 +99,9 @@ cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
 
-# Update macros' version and base path
-sed -e 's:__COMPOSER_VERSION__:%version:' \
-    -e 's:__COMPOSER__:%composer:' \
-    -i macros.composer
-
 
 %build
+# Empty build section, nothing to build
 
 
 %install
