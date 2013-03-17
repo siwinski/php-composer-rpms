@@ -1,3 +1,3 @@
 %__composer_provides  %{_rpmconfigdir}/composer.prov
 %__composer_requires  %{_rpmconfigdir}/composer.req
-%__composer_path      ^%{composer}/
+%__composer_path      ^%{_datadir}/composer/
