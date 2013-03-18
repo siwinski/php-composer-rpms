@@ -5,5 +5,5 @@
 .project
 rpmbuild
 
-# Ignore all directories
-*/
+# Ignore all sub-directories
+*/*/
