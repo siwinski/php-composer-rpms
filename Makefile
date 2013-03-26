@@ -11,6 +11,8 @@ REPO_RELEASE     = $(shell \
 						fi)
 REPO_PATH        = fedorapeople.org:/srv/repos/siwinski/php-composer/$(REPO_RELEASE)
 
+PKGS             := $(shell find ./pkgs -name "*.spec")
+
 # TARGET: help          Print this information
 .PHONY: help
 help:
@@ -35,8 +37,13 @@ core: setup
 	rpmbuild $(RPMBUILD_OPTIONS) --define '_sourcedir $(PWD)/core' -ba core/php-composer.spec
 
 # TARGET: pkgs          Make all pkgs RPMs
-.PHONY: pkgs
-pkgs: setup
+.PHONY: pkgs $(PKGS)
+pkgs: setup $(PKGS)
+
+$(PKGS): CORE_SOURCE=$(shell spectool --list-files $@ | grep '^Source0:' | sed 's/Source0:\s*//' | xargs basename)
+$(PKGS): setup
+	[ -e rpmbuild/SOURCES/$(CORE_SOURCE) ] || spectool $(SPECTOOL_OPTIONS) $@
+	rpmbuild $(RPMBUILD_OPTIONS) -ba $@
 
 # TARGET: all           Make all core and pkgs RPMs
 .PHONY: all

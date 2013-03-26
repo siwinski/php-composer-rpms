@@ -1,4 +1,6 @@
 # See WARNING notes in %%description
+# Disable automatic dependency processing - creates endless loop if php-composer is already installed on buildsys
+AutoReqProv: no
 
 %global github_owner       composer
 %global github_name        composer
