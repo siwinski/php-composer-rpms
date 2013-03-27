@@ -54,8 +54,12 @@ def main():
                     deps += process_version(require, version)
                 # ext-*
                 elif name.startswith('ext-'):
-                    # TODO: We should be able to handle some...
-                    print >> sys.stderr, 'WARNING: Composer auto-require: PHP extensions not handled (name="%s" version="%s")' % (name, version)
+                    require = name.replace('ext-','php-',1)
+                    deps += process_version(require, version)
+                # lib-*
+                elif name.startswith('lib-'):
+                    # TODO: do we want to handle these?
+                    print >> sys.stderr, 'WARNING: Composer auto-require: system librarys not handled (name="%s" version="%s")' % (name, version)
                 # other
                 else:
                     require = 'php-composer(' + name + ')'
@@ -81,7 +85,6 @@ def process_version(require, version):
                 deps += process_version_part(require, m.group(1), m.group(2))
             else:
                 print >> sys.stderr, 'ERROR: Composer auto-require: Invalid version for require "%s": "%s"' % (require, version)
-
     return deps
 
 

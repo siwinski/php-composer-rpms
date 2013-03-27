@@ -32,10 +32,12 @@ import sys
 paths = [path.rstrip() for path in sys.stdin.readlines()]
 
 for path in paths:
-    if path.endswith('composer.json'):
-        fh = open(path)
-        metadata = json.load(fh)
-        fh.close()
+    if not path.endswith('composer.json'):
+        continue
+
+    fh = open(path)
+    metadata = json.load(fh)
+    fh.close()
 
     if not 'name' in metadata or metadata['name'] is None or metadata['name'] == '':
         print >> sys.stderr, 'WARNING: Composer auto-provides: "name" not defined in', path
