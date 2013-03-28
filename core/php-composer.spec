@@ -45,6 +45,8 @@ Source4:       composer.req
 
 BuildArch:     noarch
 
+BuildRequires:  php-phpunit-PHPUnit
+
 Requires:      php-common >= %{php_min_ver}
 Requires:      php-jsonlint >= %{jsonlint_min_ver}
 Requires:      php-jsonlint <  %{jsonlint_max_ver}
@@ -101,14 +103,32 @@ cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
 
+# FIXME need phar to create vendor dir
+cd %{github_name}-%{github_commit}
+curl -sS https://getcomposer.org/installer | php
+# fetches dependencies - probably we want to unbundle these
+php composer.phar install
+# -----------
 
 %build
 # Empty build section, nothing to build
 
+# FIXME
+# this overwrites the downloaded composer.phar from the previous step - do we want that phar?
+# note if vendor dir is present bin/composer works as well
+%{github_name}-%{github_commit}/bin/compile
+# -----------
 
 %install
-mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}
-cp -rp %{github_name}-%{github_commit}/* %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
+cp -rp %{github_name}-%{github_commit}/{bin,res,src,tests} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+cp -a %{github_name}-%{github_commit}/{composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+
+ln -s %{composer}/%{composer_vendor}/%{composer_project}/bin/composer %{buildroot}%{_bindir}/composer
+
+# FIXME bundling
+cp -rp %{github_name}-%{github_commit}/vendor %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+# -----------
 
 # RPM "magic"
 mkdir -p -m 0755 %{buildroot}%{_sysconfdir}/rpm
@@ -120,18 +140,20 @@ install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 
 
 %check
+cd %{github_name}-%{github_commit}
+phpunit -d date.timezone=UTC
 
 
 %files
 %doc %{github_name}-%{github_commit}/LICENSE
 %doc %{github_name}-%{github_commit}/*.md
 %doc %{github_name}-%{github_commit}/PORTING_INFO
+%doc %{github_name}-%{github_commit}/doc
 %dir %{composer}
 %dir %{composer}/%{composer_vendor}
      %{composer}/%{composer_vendor}/%{composer_project}
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/LICENSE
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/*.md
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/PORTING_INFO
+
+%{_bindir}/composer
 # RPM "magic"
 %{_sysconfdir}/rpm/macros.composer
 %{_rpmconfigdir}/fileattrs/composer.attr
