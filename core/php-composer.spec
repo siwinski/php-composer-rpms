@@ -5,8 +5,8 @@ AutoReqProv: no
 %global github_owner       composer
 %global github_name        composer
 %global github_version     1.0.0
-%global github_commit      0c8158f47d7dda89226d4e816fee1fb9ac6c1204
-%global github_date        20121023
+%global github_commit      78c250da19b823617a14513450576977da36eb3f
+%global github_date        20130328
 
 #%%global github_release %%{github_date}git%%(c=%%{github_commit}; echo ${c:0:7})
 %global github_release     alpha6
@@ -30,7 +30,7 @@ AutoReqProv: no
 
 Name:          php-composer
 Version:       %{github_version}
-Release:       0.1.%{github_release}%{?dist}
+Release:       0.1.%{github_date}git%{?dist}
 Summary:       Dependency Manager for PHP
 
 Group:         Development/Libraries
@@ -43,7 +43,23 @@ Source2:       composer.attr
 Source3:       composer.prov
 Source4:       composer.req
 
+# use system libraries for compiling phar
+Patch0:        php-composer-compiler-fix-lib-path.patch
+
 BuildArch:     noarch
+
+# need this for test suite
+BuildRequires:  php-phpunit-PHPUnit
+BuildRequires:  php-jsonlint >= %{jsonlint_min_ver}
+BuildRequires:  php-jsonlint <  %{jsonlint_max_ver}
+BuildRequires:  php-JsonSchema >= %{jsonschema_min_ver}
+BuildRequires:  php-JsonSchema <  %{jsonschema_max_ver}
+BuildRequires:  php-pear(pear.symfony.com/Console) >= %{symfony_min_ver}
+BuildRequires:  php-pear(pear.symfony.com/Console) <  %{symfony_max_ver}
+BuildRequires:  php-pear(pear.symfony.com/Finder) >= %{symfony_min_ver}
+BuildRequires:  php-pear(pear.symfony.com/Finder) <  %{symfony_max_ver}
+BuildRequires:  php-pear(pear.symfony.com/Process) >= %{symfony_min_ver}
+BuildRequires:  php-pear(pear.symfony.com/Process) <  %{symfony_max_ver}
 
 Requires:      php-common >= %{php_min_ver}
 Requires:      php-jsonlint >= %{jsonlint_min_ver}
@@ -72,7 +88,6 @@ Requires:      php-spl
 Requires:      php-tokenizer
 Requires:      php-xsl
 Requires:      php-zip
-Requires:      php-zlib
 %if 0%{?fedora}
 Requires:      php-filter
 Requires:      php-phar
@@ -101,14 +116,36 @@ cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
 
+cd %{github_name}-%{github_commit}
+
+%patch0
+
+# rpmlint warnings
+find ./ -name "*.php" -executable | xargs chmod -x
+
+# TODO need composer.phar for bootstrapping - include in source?
+curl -sS https://getcomposer.org/installer | php
+# important option - allows loading of classes also from global php include path
+php composer.phar config use-include-path true
+
+php composer.phar dumpautoload
+rm -f composer.phar
 
 %build
 # Empty build section, nothing to build
 
+# TODO
+# this overwrites the downloaded composer.phar from the previous step - do we want that phar?
+# note if vendor dir is present bin/composer works as well
+%{github_name}-%{github_commit}/bin/compile
+# -----------
 
 %install
-mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}
-cp -rp %{github_name}-%{github_commit}/* %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
+cp -rp %{github_name}-%{github_commit}/{bin,res,src,tests} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+cp -a %{github_name}-%{github_commit}/{composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+
+ln -s %{composer}/%{composer_vendor}/%{composer_project}/bin/composer %{buildroot}%{_bindir}/composer
 
 # RPM "magic"
 mkdir -p -m 0755 %{buildroot}%{_sysconfdir}/rpm
@@ -120,18 +157,21 @@ install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 
 
 %check
+cd %{github_name}-%{github_commit}
+# FIXME some test cases are confused by rpm build env
+phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC || :
 
 
 %files
 %doc %{github_name}-%{github_commit}/LICENSE
 %doc %{github_name}-%{github_commit}/*.md
 %doc %{github_name}-%{github_commit}/PORTING_INFO
+%doc %{github_name}-%{github_commit}/doc
 %dir %{composer}
 %dir %{composer}/%{composer_vendor}
      %{composer}/%{composer_vendor}/%{composer_project}
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/LICENSE
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/*.md
-%exclude %{composer}/%{composer_vendor}/%{composer_project}/PORTING_INFO
+
+%{_bindir}/composer
 # RPM "magic"
 %{_sysconfdir}/rpm/macros.composer
 %{_rpmconfigdir}/fileattrs/composer.attr
@@ -140,5 +180,9 @@ install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 
 
 %changelog
+* Thu Mar 28 2013 Gregor Tätzner <brummbq@fedoraproject.org> - 1.0.0-0.1.20130328git
+- git snapshot 78c250da19b823617a14513450576977da36eb3f
+- enable tests
+
 * Mon Feb 18 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.1.alpha6
 - Initial package
