@@ -142,10 +142,13 @@ rm -f composer.phar
 
 %install
 mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
-cp -rp %{github_name}-%{github_commit}/{bin,res,src,tests} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+cp -rp %{github_name}-%{github_commit}/{bin,res,src,tests,vendor} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
 cp -a %{github_name}-%{github_commit}/{composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
 
 ln -s %{composer}/%{composer_vendor}/%{composer_project}/bin/composer %{buildroot}%{_bindir}/composer
+
+# symlink generic autoloader to include path
+ln -s %{composer}/%{composer_vendor}/%{composer_project}/vendor %{buildroot}%{composer}/vendor
 
 # RPM "magic"
 mkdir -p -m 0755 %{buildroot}%{_sysconfdir}/rpm
@@ -158,8 +161,7 @@ install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 
 %check
 cd %{github_name}-%{github_commit}
-# FIXME some test cases are confused by rpm build env
-phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC || :
+phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
 
 
 %files
@@ -167,6 +169,7 @@ phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC || :
 %doc %{github_name}-%{github_commit}/*.md
 %doc %{github_name}-%{github_commit}/PORTING_INFO
 %doc %{github_name}-%{github_commit}/doc
+%{composer}/vendor
 %dir %{composer}
 %dir %{composer}/%{composer_vendor}
      %{composer}/%{composer_vendor}/%{composer_project}
