@@ -1,1 +1,12 @@
 %composer  %{_datadir}/composer
+
+# Patch composer.json to add, modify, or delete a dependency
+# See http://getcomposer.org/doc/04-schema.md#package-links for details.
+#
+# Usage:
+#     %%composer_fixreq [-d,--delete] require [version]
+#
+#     -d,--delete  Delete require name
+#     require      Require name
+#     version      Require version (ignored on delete)
+%composer_fixreq  %{_rpmconfigdir}/composer-fixreq

@@ -105,7 +105,7 @@ def process_version_part(require, operator, version):
         # Min version
         deps.append(' '.join([require, '>=', version.replace('.*', '.0')]))
 
-    # Max version
+        # Max version
         version_parts = version.split('.')
         version_parts[-1] = '0'
         version_parts[-2] = str(int(version_parts[-2]) + 1)

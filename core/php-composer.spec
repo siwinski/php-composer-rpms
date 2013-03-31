@@ -30,7 +30,7 @@ AutoReqProv: no
 
 Name:          php-composer
 Version:       %{github_version}
-Release:       0.1.%{github_date}git%{?dist}
+Release:       0.2.%{github_date}git%{?dist}
 Summary:       Dependency Manager for PHP
 
 Group:         Development/Libraries
@@ -42,6 +42,7 @@ Source1:       macros.composer
 Source2:       composer.attr
 Source3:       composer.prov
 Source4:       composer.req
+Source5:       composer-fixreq
 
 # use system libraries for compiling phar
 Patch0:        php-composer-compiler-fix-lib-path.patch
@@ -115,6 +116,7 @@ cp %{SOURCE1} .
 cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
+cp %{SOURCE5} .
 
 cd %{github_name}-%{github_commit}
 
@@ -157,6 +159,7 @@ mkdir -p -m 0755 %{buildroot}%{_rpmconfigdir}/fileattrs
 install -p -m 0644 composer.attr %{buildroot}%{_rpmconfigdir}/fileattrs/
 install -p -m 0755 composer.prov %{buildroot}%{_rpmconfigdir}/
 install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
+install -p -m 0755 composer-fixreq %{buildroot}%{_rpmconfigdir}/
 
 
 %check
@@ -180,9 +183,13 @@ phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
 %{_rpmconfigdir}/fileattrs/composer.attr
 %{_rpmconfigdir}/composer.prov
 %{_rpmconfigdir}/composer.req
+%{_rpmconfigdir}/composer-fixreq
 
 
 %changelog
+* Sat Mar 30 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.2.20130328git
+- Added composer.fixreq
+
 * Thu Mar 28 2013 Gregor Tätzner <brummbq@fedoraproject.org> - 1.0.0-0.1.20130328git
 - git snapshot 78c250da19b823617a14513450576977da36eb3f
 - enable tests

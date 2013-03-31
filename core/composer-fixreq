@@ -1,0 +1,59 @@
+#!/usr/bin/python
+
+"""
+Modify a requirement listed in a composer.json file.
+
+See http://getcomposer.org/doc/04-schema.md for details.
+"""
+
+# Copyright 2013 Shawn Iwinski <shawn.iwinski@gmail.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+import json
+import os
+import shutil
+import sys
+
+# Backup original distributed composer.json on first run
+if not os.path.exists('composer.json.dist'):
+    shutil.copy2('composer.json', 'composer.json.dist')
+
+metadata = json.load(open('composer.json'))
+
+if not metadata['require']:
+    metadata['require'] = {}
+
+if (sys.argv[1] == '-d') or (sys.argv[1] == '--delete'):
+    req = sys.argv[2]
+    del metadata['require'][req]
+else:
+    req = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        ver = sys.argv[2]
+    else:
+        ver = '*'
+
+    metadata['require'][req] = ver
+
+new_metadata = json.JSONEncoder(indent=4).encode(metadata)
+fh = open('composer.json', 'w')
+fh.write(new_metadata + '\n')
+fh.close()
