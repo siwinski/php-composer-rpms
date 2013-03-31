@@ -1,4 +1,5 @@
-%composer  %{_datadir}/composer
+%__composer  %{_bindir}/composer
+%composer    %{_datadir}/composer
 
 # Patch composer.json to add, modify, or delete a dependency
 # See http://getcomposer.org/doc/04-schema.md#package-links for details.
