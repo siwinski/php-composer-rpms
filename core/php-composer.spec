@@ -1,6 +1,12 @@
 # See WARNING notes in %%description
-# Disable automatic dependency processing - creates endless loop if php-composer is already installed on buildsys
+
+# Disable automatic dependency processing
+# (prevents endless loop if php-composer is already installed on buildsys)
 AutoReqProv: no
+
+# For now, disable tests by default
+# Tests are only run with rpmbuild --with tests
+%global with_tests         %{?_with_tests:1}%{!?_with_tests:0}
 
 %global github_owner       composer
 %global github_name        composer
@@ -8,8 +14,7 @@ AutoReqProv: no
 %global github_commit      78c250da19b823617a14513450576977da36eb3f
 %global github_date        20130328
 
-#%%global github_release %%{github_date}git%%(c=%%{github_commit}; echo ${c:0:7})
-%global github_release     alpha6
+%global github_release     alpha6.%{github_date}git%(c=%{github_commit}; echo ${c:0:7})
 
 %global php_min_ver        5.3.2
 
@@ -30,7 +35,7 @@ AutoReqProv: no
 
 Name:          php-composer
 Version:       %{github_version}
-Release:       0.2.%{github_date}git%{?dist}
+Release:       0.3.%{github_release}%{?dist}
 Summary:       Dependency Manager for PHP
 
 Group:         Development/Libraries
@@ -43,6 +48,7 @@ Source2:       composer.attr
 Source3:       composer.prov
 Source4:       composer.req
 Source5:       composer-fixreq
+Source6:       composer-install
 
 # use system libraries for compiling phar
 Patch0:        php-composer-compiler-fix-lib-path.patch
@@ -117,6 +123,7 @@ cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
 cp %{SOURCE5} .
+cp %{SOURCE6} .
 
 cd %{github_name}-%{github_commit}
 
@@ -160,11 +167,16 @@ install -p -m 0644 composer.attr %{buildroot}%{_rpmconfigdir}/fileattrs/
 install -p -m 0755 composer.prov %{buildroot}%{_rpmconfigdir}/
 install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
 install -p -m 0755 composer-fixreq %{buildroot}%{_rpmconfigdir}/
+install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 
 
 %check
-cd %{github_name}-%{github_commit}
-phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
+%if %{with_tests}
+    cd %{github_name}-%{github_commit}
+    phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
+%else
+: Tests skipped, missing '--with tests' option
+%endif
 
 
 %files
@@ -176,7 +188,6 @@ phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
 %dir %{composer}
 %dir %{composer}/%{composer_vendor}
      %{composer}/%{composer_vendor}/%{composer_project}
-
 %{_bindir}/composer
 # RPM "magic"
 %{_sysconfdir}/rpm/macros.composer
@@ -184,11 +195,16 @@ phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
 %{_rpmconfigdir}/composer.prov
 %{_rpmconfigdir}/composer.req
 %{_rpmconfigdir}/composer-fixreq
+%{_rpmconfigdir}/composer-install
 
 
 %changelog
+* Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
+- Added composer-install
+- Disabled tests by default
+
 * Sat Mar 30 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.2.20130328git
-- Added composer.fixreq
+- Added composer-fixreq
 
 * Thu Mar 28 2013 Gregor Tätzner <brummbq@fedoraproject.org> - 1.0.0-0.1.20130328git
 - git snapshot 78c250da19b823617a14513450576977da36eb3f

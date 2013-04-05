@@ -11,3 +11,5 @@
 #     require      Require name
 #     version      Require version (ignored on delete)
 %composer_fixreq  %{_rpmconfigdir}/composer-fixreq
+
+%composer_install  %{_rpmconfigdir}/composer-install --composer="%__composer" --composer_dir="%composer" --php_dir="%{_datadir}/php" --bin_dir="%{_bindir}"
