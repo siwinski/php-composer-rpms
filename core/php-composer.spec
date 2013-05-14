@@ -6,15 +6,31 @@ AutoReqProv: no
 
 # For now, disable tests by default
 # Tests are only run with rpmbuild --with tests
-%global with_tests         %{?_with_tests:1}%{!?_with_tests:0}
+%global with_tests           %{?_with_tests:1}%{!?_with_tests:0}
 
-%global github_owner       composer
-%global github_name        composer
-%global github_version     1.0.0
-%global github_commit      78c250da19b823617a14513450576977da36eb3f
-%global github_date        20130328
+# 1 = Tagged version
+# 0 or undefined = Snapshot version
+%global github_tagged        1
 
-%global github_release     alpha6.%{github_date}git%(c=%{github_commit}; echo ${c:0:7})
+%global github_owner         composer
+%global github_name          composer
+%global github_version       1.0.0
+%global github_version_alpha alpha7
+%global github_commit        3e6afd8975b6ff6eb3045ba00e532d6c0e302fe6
+%global github_date          20130504
+
+%if 1 != 0%{?github_tagged}
+%global github_release %{github_date}git%(c=%{github_commit}; echo ${c:0:7})
+%endif
+
+# This is the version that "composer.phar --version" will print. Need to
+# manually define this here because compilation is from a tarball and not
+# a git repo like the source compiler requires to calulate this value.
+%if 0%{?github_tagged}
+%global phar_version %{github_version}%{?github_version_alpha:-%{github_version_alpha}}
+%else
+%global phar_version %{github_commit}
+%endif
 
 %global php_min_ver        5.3.2
 
@@ -35,20 +51,22 @@ AutoReqProv: no
 
 Name:          php-composer
 Version:       %{github_version}
-Release:       0.3.%{github_release}%{?dist}
+Release:       0.4%{?github_version_alpha:.%{github_version_alpha}}%{?github_release:.%{github_release}}%{?dist}
 Summary:       Dependency Manager for PHP
 
 Group:         Development/Libraries
 License:       MIT
 URL:           http://getcomposer.org
 Source0:       https://github.com/%{github_owner}/%{github_name}/archive/%{github_commit}/%{name}-%{github_version}-%{github_commit}.tar.gz
+# Required only for bootstrapping/build
+Source1:       http://getcomposer.org/download/1.0.0-alpha7/composer.phar
 # RPM "magic"
-Source1:       macros.composer
-Source2:       composer.attr
-Source3:       composer.prov
-Source4:       composer.req
-Source5:       composer-fixreq
-Source6:       composer-install
+Source2:       macros.composer
+Source3:       composer.attr
+Source4:       composer.prov
+Source5:       composer.req
+Source6:       composer-fixreq
+Source7:       composer-install
 
 # use system libraries for compiling phar
 Patch0:        php-composer-compiler-fix-lib-path.patch
@@ -118,12 +136,12 @@ WARNING: This is just a development RPM.  Please submit issues at
 %prep
 %setup -q -c
 
-cp %{SOURCE1} .
 cp %{SOURCE2} .
 cp %{SOURCE3} .
 cp %{SOURCE4} .
 cp %{SOURCE5} .
 cp %{SOURCE6} .
+cp %{SOURCE7} .
 
 cd %{github_name}-%{github_commit}
 
@@ -132,22 +150,15 @@ cd %{github_name}-%{github_commit}
 # rpmlint warnings
 find ./ -name "*.php" -executable | xargs chmod -x
 
-# TODO need composer.phar for bootstrapping - include in source?
-curl -sS https://getcomposer.org/installer | php
 # important option - allows loading of classes also from global php include path
-php composer.phar config use-include-path true
+php %{SOURCE1} config use-include-path true
 
-php composer.phar dumpautoload
-rm -f composer.phar
+php %{SOURCE1} dumpautoload
+
 
 %build
-# Empty build section, nothing to build
-
-# TODO
-# this overwrites the downloaded composer.phar from the previous step - do we want that phar?
-# note if vendor dir is present bin/composer works as well
 %{github_name}-%{github_commit}/bin/compile
-# -----------
+
 
 %install
 mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
@@ -199,6 +210,11 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 
 
 %changelog
+* Tue May 14 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.4.alpha7
+- Updated to version 1.0.0-alpha7
+- Use ustream PHAR as source instead of downloading
+- Updated some macro logic
+
 * Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
 - Added composer-install
 - Disabled tests by default
