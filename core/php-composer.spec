@@ -68,8 +68,10 @@ Source5:       composer.req
 Source6:       composer-fixreq
 Source7:       composer-install
 
-# Allow for setting of PHAR version
+# Allow for setting of PHAR version (RPM-only patch)
 Patch0:        php-composer-phar-version.patch
+# No COMPOSER_DEV_WARNING_TIME (RPM-only patch)
+Patch1:        php-composer-no-dev-warning-time.patch
 
 BuildArch:     noarch
 
@@ -149,6 +151,9 @@ cd %{github_name}-%{github_commit}
 %patch0
 sed 's#__PHAR_VERSION__#%{phar_version}#' -i src/Composer/Compiler.php
 
+# No COMPOSER_DEV_WARNING_TIME
+%patch1
+
 # Use system libraries
 sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
     -e "s#__DIR__.'/../../vendor/seld/jsonlint/src/'#'%{_datadir}/php/Seld/JsonLint/'#" \
@@ -224,6 +229,7 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 - Path substitution instead of patch
 - Updated some macro logic
 - Allow for setting of PHAR version
+- No COMPOSER_DEV_WARNING_TIME
 
 * Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
 - Added composer-install
