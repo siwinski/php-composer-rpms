@@ -143,9 +143,9 @@ cp %{SOURCE7} .
 cd %{github_name}-%{github_commit}
 
 # Use system libraries
-sed -e "s#__DIR__.'/../../vendor/symfony/'#%pear_phpdir/Symfony/Component/#" \
-    -e "s#__DIR__.'/../../vendor/seld/jsonlint/src/'#%{_datadir}/php/Seld/JsonLint/#" \
-    -e "s#__DIR__.'/../../vendor/justinrainbow/json-schema/src/'#%{_datadir}/php/JsonSchema/#" \
+sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
+    -e "s#__DIR__.'/../../vendor/seld/jsonlint/src/'#'%{_datadir}/php/Seld/JsonLint/'#" \
+    -e "s#__DIR__.'/../../vendor/justinrainbow/json-schema/src/'#'%{_datadir}/php/JsonSchema/'#" \
     -i src/Composer/Compiler.php
 
 # rpmlint warnings
