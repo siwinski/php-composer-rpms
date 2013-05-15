@@ -160,6 +160,10 @@ sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
     -e "s#__DIR__.'/../../vendor/justinrainbow/json-schema/src/'#'%{_datadir}/php/JsonSchema/'#" \
     -i src/Composer/Compiler.php
 
+# No self update
+rm -f src/Composer/Command/SelfUpdateCommand.php
+sed '/SelfUpdateCommand/d' -i src/Composer/Console/Application.php
+
 # rpmlint warnings
 find ./ -name "*.php" -executable | xargs chmod -x
 
@@ -230,6 +234,7 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 - Updated some macro logic
 - Allow for setting of PHAR version
 - No COMPOSER_DEV_WARNING_TIME
+- No self update
 
 * Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
 - Added composer-install
