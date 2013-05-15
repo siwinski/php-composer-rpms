@@ -68,6 +68,9 @@ Source5:       composer.req
 Source6:       composer-fixreq
 Source7:       composer-install
 
+# Allow for setting of PHAR version
+Patch0:        php-composer-phar-version.patch
+
 BuildArch:     noarch
 
 # need this for test suite
@@ -141,6 +144,10 @@ cp %{SOURCE6} .
 cp %{SOURCE7} .
 
 cd %{github_name}-%{github_commit}
+
+# Set PHAR version
+%patch0
+sed 's#__PHAR_VERSION__#%{phar_version}#' -i src/Composer/Compiler.php
 
 # Use system libraries
 sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
@@ -216,6 +223,7 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 - Use ustream PHAR as source instead of downloading
 - Path substitution instead of patch
 - Updated some macro logic
+- Allow for setting of PHAR version
 
 * Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
 - Added composer-install
