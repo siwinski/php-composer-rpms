@@ -68,9 +68,6 @@ Source5:       composer.req
 Source6:       composer-fixreq
 Source7:       composer-install
 
-# use system libraries for compiling phar
-Patch0:        php-composer-compiler-fix-lib-path.patch
-
 BuildArch:     noarch
 
 # need this for test suite
@@ -145,7 +142,11 @@ cp %{SOURCE7} .
 
 cd %{github_name}-%{github_commit}
 
-%patch0
+# Use system libraries
+sed -e "s#__DIR__.'/../../vendor/symfony/'#%pear_phpdir/Symfony/Component/#" \
+    -e "s#__DIR__.'/../../vendor/seld/jsonlint/src/'#%{_datadir}/php/Seld/JsonLint/#" \
+    -e "s#__DIR__.'/../../vendor/justinrainbow/json-schema/src/'#%{_datadir}/php/JsonSchema/#" \
+    -i src/Composer/Compiler.php
 
 # rpmlint warnings
 find ./ -name "*.php" -executable | xargs chmod -x
@@ -210,9 +211,10 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 
 
 %changelog
-* Tue May 14 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.4.alpha7
+* Wed May 15 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.4.alpha7
 - Updated to version 1.0.0-alpha7
 - Use ustream PHAR as source instead of downloading
+- Path substitution instead of patch
 - Updated some macro logic
 
 * Fri Apr 05 2013 Shawn Iwinski <shawn.iwinski@gmail.com> 1.0.0-0.3.alpha6.20130328git78c250d
