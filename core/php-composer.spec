@@ -19,17 +19,8 @@ AutoReqProv: no
 %global github_commit        3e6afd8975b6ff6eb3045ba00e532d6c0e302fe6
 %global github_date          20130504
 
-%if 1 != 0%{?github_tagged}
+%if !0%{?github_tagged}
 %global github_release %{github_date}git%(c=%{github_commit}; echo ${c:0:7})
-%endif
-
-# This is the version that "composer.phar --version" will print. Need to
-# manually define this here because compilation is from a tarball and not
-# a git repo like the source compiler requires to calulate this value.
-%if 0%{?github_tagged}
-%global phar_version %{github_version}%{?github_version_alpha:-%{github_version_alpha}}
-%else
-%global phar_version %{github_commit}
 %endif
 
 %global php_min_ver        5.3.2
@@ -67,11 +58,6 @@ Source4:       composer.prov
 Source5:       composer.req
 Source6:       composer-fixreq
 Source7:       composer-install
-
-# Allow for setting of PHAR version (RPM-only patch)
-Patch0:        php-composer-phar-version.patch
-# No COMPOSER_DEV_WARNING_TIME (RPM-only patch)
-Patch1:        php-composer-no-dev-warning-time.patch
 
 BuildArch:     noarch
 
@@ -147,13 +133,6 @@ cp %{SOURCE7} .
 
 cd %{github_name}-%{github_commit}
 
-# Set PHAR version
-%patch0
-sed 's#__PHAR_VERSION__#%{phar_version}#' -i src/Composer/Compiler.php
-
-# No COMPOSER_DEV_WARNING_TIME
-%patch1
-
 # Use system libraries
 sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
     -e "s#__DIR__.'/../../vendor/seld/jsonlint/src/'#'%{_datadir}/php/Seld/JsonLint/'#" \
@@ -174,7 +153,7 @@ php %{SOURCE1} dumpautoload
 
 
 %build
-%{github_name}-%{github_commit}/bin/compile
+# Empty build section, nothing to build
 
 
 %install
