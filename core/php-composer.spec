@@ -59,6 +59,9 @@ Source5:       composer.req
 Source6:       composer-fixreq
 Source7:       composer-install
 
+# Allow compatibility with RPM < 4.9 (no fileattrs)
+Patch0:        php-composer-rpm-no-fileattrs.patch
+
 BuildArch:     noarch
 
 # need this for test suite
@@ -130,6 +133,9 @@ cp %{SOURCE4} .
 cp %{SOURCE5} .
 cp %{SOURCE6} .
 cp %{SOURCE7} .
+
+# Allow compatibility with RPM < 4.9 (no fileattrs)
+%{!?_fileattrsdir:%patch0}
 
 cd %{github_name}-%{github_commit}
 
