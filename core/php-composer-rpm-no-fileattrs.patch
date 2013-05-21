@@ -29,7 +29,7 @@ index d079cce..4103ae7 100644
 -# No-op macro to allow spec compatibility with RPM < 4.9 (no fileattrs)
 -%composer_find_provides_and_requires %{nil}
 +# Macro to allow spec compatibility with RPM < 4.9 (no fileattrs)
-+%composer_find_provides_and_requires %%{expand: \
++%composer_find_provides_and_requires %{expand: \
 +%global _use_internal_dependency_generator 0
 +%global __find_provides %{_rpmconfigdir}/composer.prov
 +%global __find_requires %{_rpmconfigdir}/composer.req
