@@ -44,12 +44,12 @@ for path in paths:
         continue
 
     version = None
-    if 'COMPOSER_PROVIDES_VERSION' in os.environ and os.environ['COMPOSER_PROVIDES_VERSION'] != '':
-        version = os.environ['COMPOSER_PROVIDES_VERSION']
-    elif 'version' in metadata and metadata['version'] != '':
+    if 'version' in metadata and metadata['version'] != '':
         version = metadata['version']
     else:
         # TODO: Evaluate version as composer does
+        #       ^^^ Cannot do because not a Git repo
+        #       ^^^ Need some other way to output auto-provide version
         pass
 
     print 'php-composer(' + metadata['name'] + ')',
