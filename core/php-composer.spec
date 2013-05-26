@@ -164,7 +164,7 @@ php %{SOURCE1} config bin-dir %{_bindir}
 php %{SOURCE1} config cache-dir %{_prefix}/cache/composer
 
 # Create autoload files
-php %{SOURCE1} dumpautoload
+php %{SOURCE1} dump-autoload
 
 
 %build
