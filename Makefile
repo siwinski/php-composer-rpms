@@ -32,8 +32,10 @@ setup:
 .PHONY: core
 core: CORE_SOURCE=$(shell spectool --list-files core/php-composer.spec | grep '^Source0:' | sed 's/Source0:\s*//' | xargs basename)
 core: setup
-	@[ -e rpmbuild/SOURCES/$(CORE_SOURCE) ] || spectool $(SPECTOOL_OPTIONS) core/php-composer.spec
+	@[ -e rpmbuild/SOURCES/$(CORE_SOURCE) ] && [ -e rpmbuild/SOURCES/composer.phar ] \
+		|| spectool $(SPECTOOL_OPTIONS) core/php-composer.spec
 	@[ -e core/$(CORE_SOURCE) ] || ln -s ../rpmbuild/SOURCES/$(CORE_SOURCE) core/$(CORE_SOURCE)
+	@[ -e core/composer.phar ]  || ln -s ../rpmbuild/SOURCES/composer.phar  core/composer.phar
 	rpmbuild $(RPMBUILD_OPTIONS) --define '_sourcedir $(PWD)/core' -ba core/php-composer.spec
 
 # TARGET: pkgs          Make all pkgs RPMs
