@@ -149,12 +149,21 @@ sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
 rm -f src/Composer/Command/SelfUpdateCommand.php
 sed '/SelfUpdateCommand/d' -i src/Composer/Console/Application.php
 
-# rpmlint warnings
-find ./ -name "*.php" -executable | xargs chmod -x
+# Fix rpmlint warnings
+find . -name "*.php" -executable | xargs chmod -x
 
-# important option - allows loading of classes also from global php include path
+# Update bin shebang
+sed 's#/usr/bin/env php#%{_bindir}/php#' -i bin/composer
+
+# Set configs (these settings are written to the source's composer.json file)
+## Allows loading of classes from the global PHP include path
 php %{SOURCE1} config use-include-path true
+## Bin dir
+php %{SOURCE1} config bin-dir %{_bindir}
+## Cache dir
+php %{SOURCE1} config cache-dir %{_prefix}/cache/composer
 
+# Create autoload files
 php %{SOURCE1} dumpautoload
 
 
@@ -163,14 +172,23 @@ php %{SOURCE1} dumpautoload
 
 
 %install
-mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
-cp -rp %{github_name}-%{github_commit}/{bin,res,src,tests,vendor} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
-cp -a %{github_name}-%{github_commit}/{composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+pushd %{github_name}-%{github_commit}
 
+mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
+cp -rp {bin,res,src,tests,vendor} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+cp -a {composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
+
+# Bin
+mkdir -p -m 0755 %{buildroot}/%{_bindir}
 ln -s %{composer}/%{composer_vendor}/%{composer_project}/bin/composer %{buildroot}%{_bindir}/composer
+
+# Cache
+mkdir -p -m 0777 %{buildroot}/%{_prefix}/cache/composer
 
 # symlink generic autoloader to include path
 ln -s %{composer}/%{composer_vendor}/%{composer_project}/vendor %{buildroot}%{composer}/vendor
+
+popd
 
 # RPM "magic"
 mkdir -p -m 0755 %{buildroot}%{_sysconfdir}/rpm
@@ -202,6 +220,7 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 %dir %{composer}/%{composer_vendor}
      %{composer}/%{composer_vendor}/%{composer_project}
 %{_bindir}/composer
+%dir %{_prefix}/cache/composer
 # RPM "magic"
 %{_sysconfdir}/rpm/macros.composer
 %{_rpmconfigdir}/fileattrs/composer.attr
