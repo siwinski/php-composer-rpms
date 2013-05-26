@@ -32,7 +32,7 @@ import sys
 paths = [path.rstrip() for path in sys.stdin.readlines()]
 
 for path in paths:
-    if not path.endswith('composer.json'):
+    if not path.endswith(os.sep + 'composer.json'):
         continue
 
     fh = open(path)

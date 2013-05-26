@@ -61,6 +61,47 @@ def parse_args():
     return parser.parse_args()
 
 
+def install_vendor_symlinks(package_type, metadata, args):
+    if args.verbose:
+        print 'composer-install: install_vendor_symlinks: package_type = "%s"' % package_type
+
+    if not package_type in metadata:
+        return
+
+    # Destination directory is package vendor directory
+    dst_dir = RPM_BUILD_ROOT + args.composer_dir + os.sep + metadata['name'] + os.sep + 'vendor'
+
+    for package in metadata[package_type]:
+        if args.verbose:
+            print 'composer-install: install_vendor_symlinks:     package = "%s"' % package
+
+        # Skip packages like "php" and "ext-*"
+        if not '/' in package:
+            continue
+
+        vendor, project = package.split('/')
+
+        if args.verbose:
+            print 'composer-install: install_vendor_symlinks:         package vendor = "%s"' % vendor
+            print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
+
+        # Package vendor directory
+        vendor_dir = os.path.join(dst_dir, vendor)
+        if args.verbose:
+            print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
+        if not os.path.exists(vendor_dir):
+            os.makedirs(vendor_dir, 0755)
+
+        # Package project directory
+        project_dir      = os.path.join(vendor_dir, project)
+        project_dir_real = os.path.join(args.composer_dir, vendor, project)
+        if args.verbose:
+            print 'composer-install: install_vendor_symlinks:         package project dir = "%s"' % project_dir
+            print 'composer-install: install_vendor_symlinks:         package project dir real= "%s"' % project_dir_real
+        if not os.path.islink(project_dir):
+            os.symlink(project_dir_real, project_dir)
+
+
 def install_autoload(metadata, args):
     if not 'autoload' in metadata:
         return
@@ -82,8 +123,12 @@ def install(metadata, args):
         sys.exit(1)
 
     dst_dir = RPM_BUILD_ROOT + args.composer_dir + os.sep + metadata['name']
-    subprocess.check_call('mkdir -p -m 0755 ' + dst_dir, shell=True)
+    subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
     subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+
+    install_vendor_symlinks('require',     metadata, args)
+    install_vendor_symlinks('require-dev', metadata, args)
+    install_vendor_symlinks('suggest',     metadata, args)
 
     install_autoload(metadata, args)
     install_bin(metadata, args)
