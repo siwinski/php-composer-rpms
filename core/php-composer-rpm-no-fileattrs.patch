@@ -1,5 +1,5 @@
-diff --git core/composer.prov core/composer.prov
-index c3f89be..4524e72 100755
+diff --git composer.prov composer.prov
+index 59d168f..b1a92c4 100755
 --- composer.prov
 +++ composer.prov
 @@ -27,6 +27,7 @@ Taken from composer.json.  See http://getcomposer.org/doc/04-schema.md for detai
@@ -10,7 +10,7 @@ index c3f89be..4524e72 100755
  import sys
  
  paths = [path.rstrip() for path in sys.stdin.readlines()]
-@@ -58,3 +59,7 @@ for path in paths:
+@@ -55,3 +56,7 @@ for path in paths:
          print '=', version
      else:
          print
@@ -18,8 +18,31 @@ index c3f89be..4524e72 100755
 +# Invoke the regular RPM provides generator to allow compatibility with RPM < 4.9 (no fileattrs)
 +p = subprocess.Popen(['/usr/lib/rpm/find-provides'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 +print p.communicate(input='\n'.join(paths))[0]
-diff --git core/macros.composer core/macros.composer
-index d079cce..4103ae7 100644
+diff --git composer.req composer.req
+index 5b1dbcd..6610b1d 100755
+--- composer.req
++++ composer.req
+@@ -28,6 +28,7 @@ Taken from composer.json.  See http://getcomposer.org/doc/04-schema.md for detai
+ import json
+ import os
+ import re
++import subprocess
+ import sys
+ 
+ RE_VERSION = re.compile(r'\s*([<>=~!]{0,2})\s*([0-9][0-9\.\*]*(\.\*)?)\s*')
+@@ -71,6 +72,10 @@ def main():
+ 
+         print '\n'.join(deps)
+ 
++    # Invoke the regular RPM requires generator to allow compatibility with RPM < 4.9 (no fileattrs)
++    p = subprocess.Popen(['/usr/lib/rpm/find-requires'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
++    print p.communicate(input='\n'.join(paths))[0]
++
+ 
+ def process_version(require, version):
+     deps = []
+diff --git macros.composer macros.composer
+index d079cce..eafcd28 100644
 --- macros.composer
 +++ macros.composer
 @@ -14,5 +14,9 @@
@@ -31,6 +54,6 @@ index d079cce..4103ae7 100644
 +# Macro to allow spec compatibility with RPM < 4.9 (no fileattrs)
 +%composer_find_provides_and_requires %{expand: \
 +%global _use_internal_dependency_generator 0
-+%global __find_provides %{_rpmconfigdir}/composer.prov
++%global __find_provides %{_rpmconfigdir}/composer.prov %{version}
 +%global __find_requires %{_rpmconfigdir}/composer.req
 +}

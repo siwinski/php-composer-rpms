@@ -1,3 +1,5 @@
+%{?composer_find_provides_and_requires}
+
 %global github_owner     doctrine
 %global github_name      cache
 %global github_version   1.0

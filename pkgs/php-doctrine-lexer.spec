@@ -1,3 +1,5 @@
+%{?composer_find_provides_and_requires}
+
 %global github_owner     doctrine
 %global github_name      lexer
 %global github_version   1.0
@@ -17,6 +19,7 @@ Source0:        %{url}/archive/%{github_commit}/%{name}-%{github_version}-%{gith
 
 BuildArch:      noarch
 BuildRequires:  php-composer
+BuildRequires:  php-pear(pear.phpunit.de/PHPUnit)
 
 # phpci
 Requires:       php-reflection
@@ -39,6 +42,11 @@ This lexer is used in Doctrine Annotations and in Doctrine ORM (DQL).
 
 %install
 %{composer_install}
+
+
+%check
+cd %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}
+%{_bindir}/phpunit
 
 
 %files

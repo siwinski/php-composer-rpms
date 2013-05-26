@@ -1,3 +1,5 @@
+%{?composer_find_provides_and_requires}
+
 %global github_owner     doctrine
 %global github_name      annotations
 %global github_version   1.1
@@ -17,6 +19,7 @@ Source0:        %{url}/archive/%{github_commit}/%{name}-%{github_version}-%{gith
 
 BuildArch:      noarch
 BuildRequires:  php-composer
+BuildRequires:  php-pear(pear.phpunit.de/PHPUnit)
 
 # phpci
 Requires:       php-ctype
@@ -41,6 +44,13 @@ Docblock Annotations Parser library (extracted from Doctrine Common).
 
 %install
 %{composer_install}
+
+
+%check
+cd %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}
+ln -s %{composer}/composer/composer/vendor vendor
+%{_bindir}/phpunit
+rm -f vendor
 
 
 %files
