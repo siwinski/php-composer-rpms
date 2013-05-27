@@ -68,9 +68,6 @@ def install_vendor_symlinks(package_type, metadata, args):
     if not package_type in metadata:
         return
 
-    # Destination directory is package vendor directory
-    dst_dir = RPM_BUILD_ROOT + args.composer_dir + os.sep + metadata['name'] + os.sep + 'vendor'
-
     for package in metadata[package_type]:
         if args.verbose:
             print 'composer-install: install_vendor_symlinks:     package = "%s"' % package
@@ -86,7 +83,7 @@ def install_vendor_symlinks(package_type, metadata, args):
             print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
 
         # Package vendor directory
-        vendor_dir = os.path.join(dst_dir, vendor)
+        vendor_dir = os.path.join('vendor', vendor)
         if args.verbose:
             print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
         if not os.path.exists(vendor_dir):
@@ -100,13 +97,6 @@ def install_vendor_symlinks(package_type, metadata, args):
             print 'composer-install: install_vendor_symlinks:         package project dir real= "%s"' % project_dir_real
         if not os.path.islink(project_dir):
             os.symlink(project_dir_real, project_dir)
-
-
-def install_autoload(metadata, args):
-    if not 'autoload' in metadata:
-        return
-
-    pass
 
 
 def install_bin(metadata, args):
@@ -148,10 +138,9 @@ def install(metadata, args):
     # Create auto-load files
     subprocess.check_call(args.composer + ' --no-ansi dump-autoload', shell=True)
 
-    install_autoload(metadata, args)
-    install_bin(metadata, args)
-
     subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+
+    install_bin(metadata, args)
 
 
 def main():
