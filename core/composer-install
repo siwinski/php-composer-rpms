@@ -110,7 +110,25 @@ def install_autoload(metadata, args):
 
 
 def install_bin(metadata, args):
-    pass
+    if not 'bin' in metadata:
+        return
+
+    package_dir = os.path.join(args.composer_dir, metadata['name'])
+
+    bin_dir = RPM_BUILD_ROOT + args.bin_dir
+    if not os.path.exists(bin_dir):
+        os.makedirs(bin_dir, 0755)
+
+    for bin in metadata['bin']:
+        bin_src     = os.path.join(package_dir, bin)
+        bin_symlink = os.path.join(bin_dir, os.path.basename(bin))
+
+        if args.verbose:
+            print 'composer-install: install_bin: bin = "%s"' % bin
+            print 'composer-install: install_bin:     src = "%s"' % bin_src
+            print 'composer-install: install_bin:     symlink = "%s"' % bin_symlink
+
+        os.symlink(bin_src, bin_symlink);
 
 
 def install_doc(metadata, args):
