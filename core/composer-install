@@ -138,14 +138,20 @@ def install(metadata, args):
 
     dst_dir = RPM_BUILD_ROOT + args.composer_dir + os.sep + metadata['name']
     subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
-    subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
 
     install_vendor_symlinks('require',     metadata, args)
     install_vendor_symlinks('require-dev', metadata, args)
     install_vendor_symlinks('suggest',     metadata, args)
 
+    # Set config to use global PHP include path
+    subprocess.check_call(args.composer + ' --no-ansi config use-include-path true', shell=True)
+    # Create auto-load files
+    subprocess.check_call(args.composer + ' --no-ansi dump-autoload', shell=True)
+
     install_autoload(metadata, args)
     install_bin(metadata, args)
+
+    subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
 
 
 def main():

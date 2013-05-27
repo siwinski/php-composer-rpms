@@ -53,7 +53,7 @@ aims to be:
 
 
 %install
-%{composer_install}
+%{composer_install} --verbose
 
 
 %files

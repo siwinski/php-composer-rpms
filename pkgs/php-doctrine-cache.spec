@@ -39,7 +39,7 @@ Optional dependencies: apc, couchbase, memcache, memcached, redis, xcache
 
 
 %install
-%{composer_install}
+%{composer_install} --verbose
 
 
 %files
