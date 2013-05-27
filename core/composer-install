@@ -131,10 +131,6 @@ def install_bin(metadata, args):
         os.symlink(bin_src, bin_symlink);
 
 
-def install_doc(metadata, args):
-    pass
-
-
 def install(metadata, args):
     if not 'name' in metadata:
         print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
@@ -150,7 +146,6 @@ def install(metadata, args):
 
     install_autoload(metadata, args)
     install_bin(metadata, args)
-    install_doc(metadata, args)
 
 
 def main():
