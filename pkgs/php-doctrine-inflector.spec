@@ -28,6 +28,10 @@ Requires:       php-spl
 Doctrine Inflector is a small library that can perform string manipulations
 with regard to upper-/lowercase and singular/plural forms of words.
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

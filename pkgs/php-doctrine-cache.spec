@@ -29,6 +29,10 @@ Requires:       php-spl
 
 Optional dependencies: apc, couchbase, memcache, memcached, redis, xcache
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

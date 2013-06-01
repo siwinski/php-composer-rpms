@@ -33,6 +33,10 @@ Provides:       php-pear(pear.phpunit.de/Diff) = %{version}
 Diff implementation for PHP, factored out of PHPUnit into a stand-alone
 component.
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

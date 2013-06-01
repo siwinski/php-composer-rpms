@@ -43,6 +43,10 @@ aims to be:
   response. This makes it very easy to test apps and the framework itself. It
   also respects the HTTP specification and encourages its proper use.
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

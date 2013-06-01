@@ -27,6 +27,10 @@ Requires:       php-pcre
 An updated and stripped version of the original PHP Markdown
 (http://michelf.com/projects/php-markdown/) by Michel Fortin.
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

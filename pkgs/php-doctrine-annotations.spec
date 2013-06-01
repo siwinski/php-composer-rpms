@@ -33,6 +33,10 @@ Requires:       php-tokenizer
 %description
 Docblock Annotations Parser library (extracted from Doctrine Common).
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}

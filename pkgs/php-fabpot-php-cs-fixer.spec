@@ -33,6 +33,10 @@ If you are already using PHP_CodeSniffer to identify coding standards problems
 in your code, you know that fixing them by hand is tedious, especially on large
 projects. This tool does the job for you.
 
+WARNING: This is just a development RPM.  Please submit issues at
+         https://github.com/siwinski/php-composer-rpms/issues and prefix
+         your issue title with "[%name] ".
+
 
 %prep
 %setup -q -n %{github_name}-%{github_commit}
