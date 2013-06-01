@@ -30,21 +30,29 @@ setup:
 
 # TARGET: core          Make core RPMs
 .PHONY: core
-core: CORE_SOURCE=$(shell spectool --list-files core/php-composer.spec | grep '^Source0:' | sed 's/Source0:\s*//' | xargs basename)
+core: CORE_SOURCE=$(shell spectool --list-files core/php-composer.spec | grep '^Source0:' | sed 's/Source0:\s*//')
+core: CORE_FILENAME=$(shell basename "$(CORE_SOURCE)")
+core: CORE_COMMIT=$(shell echo "$(CORE_SOURCE)" | sed 's#$(CORE_FILENAME)##' | xargs basename)
 core: setup
-	@[ -e rpmbuild/SOURCES/$(CORE_SOURCE) ] && [ -e rpmbuild/SOURCES/composer.phar ] \
+	@[ -e rpmbuild/SOURCES/$(CORE_FILENAME) ] && [ -e rpmbuild/SOURCES/composer.phar ] \
 		|| spectool $(SPECTOOL_OPTIONS) core/php-composer.spec
-	@[ -L core/$(CORE_SOURCE) ] || ln -s ../rpmbuild/SOURCES/$(CORE_SOURCE) core/$(CORE_SOURCE)
-	@[ -L core/composer.phar ]  || ln -s ../rpmbuild/SOURCES/composer.phar  core/composer.phar
+	@[ ! -e rpmbuild/SOURCES/$(CORE_FILENAME) ] && [ -e rpmbuild/SOURCES/$(CORE_COMMIT) ] \
+		&& mv rpmbuild/SOURCES/$(CORE_COMMIT) rpmbuild/SOURCES/$(CORE_FILENAME)
+	@[ -L core/$(CORE_FILENAME) ] || ln -s ../rpmbuild/SOURCES/$(CORE_FILENAME) core/$(CORE_FILENAME)
+	@[ -L core/composer.phar ]  || ln -s ../rpmbuild/SOURCES/composer.phar core/composer.phar
 	rpmbuild $(RPMBUILD_OPTIONS) --define '_sourcedir $(PWD)/core' -ba core/php-composer.spec
 
 # TARGET: pkgs          Make all pkgs RPMs
 .PHONY: pkgs $(PKGS)
 pkgs: setup $(PKGS)
 
-$(PKGS): CORE_SOURCE=$(shell spectool --list-files $@ | grep '^Source0:' | sed 's/Source0:\s*//' | xargs basename)
+$(PKGS): PKG_SOURCE=$(shell spectool --list-files '$@' | grep '^Source0:' | sed 's/Source0:\s*//')
+$(PKGS): PKG_FILENAME=$(shell basename "$(PKG_SOURCE)")
+$(PKGS): PKG_COMMIT=$(shell echo "$(PKG_SOURCE)" | sed 's#$(PKG_FILENAME)##' | xargs basename)
 $(PKGS): setup
-	[ -e rpmbuild/SOURCES/$(CORE_SOURCE) ] || spectool $(SPECTOOL_OPTIONS) $@
+	[ -e rpmbuild/SOURCES/$(PKG_SOURCE) ] || spectool $(SPECTOOL_OPTIONS) $@
+	@[ ! -e rpmbuild/SOURCES/$(PKG_FILENAME) ] && [ -e rpmbuild/SOURCES/$(PKG_COMMIT) ] \
+                && mv rpmbuild/SOURCES/$(PKG_COMMIT) rpmbuild/SOURCES/$(PKG_FILENAME)
 	rpmbuild $(RPMBUILD_OPTIONS) -ba $@
 
 # TARGET: all           Make all core and pkgs RPMs
@@ -98,3 +106,5 @@ clean:
 	find . -name '*.gz' -delete
 	find . -name '*.tgz' -delete
 	find . -name '*.rpm' -delete
+	find . -name '*.zip' -delete
+	find . -type l -delete
