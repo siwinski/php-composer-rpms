@@ -55,3 +55,12 @@ for path in paths:
         print '=', version
     else:
         print
+
+    if 'provide' in metadata:
+        for provide in metadata['provide']:
+            print 'php-composer(' + provide + ')',
+
+            if version is not None:
+                print '=', version
+            else:
+                print
