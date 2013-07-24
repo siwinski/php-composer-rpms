@@ -30,143 +30,164 @@ import sys
 import argparse
 import subprocess
 
-RPM_PACKAGE_NAME    = os.environ.get('RPM_PACKAGE_NAME')
-RPM_PACKAGE_VERSION = os.environ.get('RPM_PACKAGE_VERSION')
-RPM_BUILD_ROOT      = os.environ.get('RPM_BUILD_ROOT')
-RPM_DOC_DIR         = os.environ.get('RPM_DOC_DIR')
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description='Installs a package from a composer.json file from the current working directory.',
-                                     epilog="""required environment variables:
+class ComposerInstall:
+    RPM_PACKAGE_NAME    = os.environ.get('RPM_PACKAGE_NAME')
+    RPM_PACKAGE_VERSION = os.environ.get('RPM_PACKAGE_VERSION')
+    RPM_BUILD_ROOT      = os.environ.get('RPM_BUILD_ROOT')
+    RPM_DOC_DIR         = os.environ.get('RPM_DOC_DIR')
+
+
+    def __init__(self):
+        self.args = self.parseArgs()
+
+        if self.args.verbose:
+            print 'RPM_PACKAGE_NAME = "%s"' % self.RPM_PACKAGE_NAME
+            print 'RPM_PACKAGE_VERSION = "%s"' % self.RPM_PACKAGE_VERSION
+            print 'RPM_BUILD_ROOT = "%s"' % self.RPM_BUILD_ROOT
+            print 'RPM_DOC_DIR = "%s"' % self.RPM_DOC_DIR
+            print self.args
+
+        if not os.path.exists('composer.json'):
+            print >> sys.stderr, 'ERROR: Composer install: composer.json not found'
+            sys.exit(1)
+
+        self.metadata = json.load(open('composer.json'))
+
+        self.install()
+
+
+    def parseArgs(self):
+        parser = argparse.ArgumentParser(description='Installs a package from a composer.json file from the current working directory.',
+                                         epilog="""required environment variables:
   RPM_PACKAGE_NAME      RPM spec %{name} (usually set by rpmbuild)
   RPM_PACKAGE_VERSION   RPM spec %{version} (usually set by rpmbuild)
   RPM_BUILD_ROOT        RPM spec %{buildroot} (usually set by rpmbuild)
   RPM_DOC_DIR           RPM spec %{_docdir} (usually set by rpmbuild)
 """, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-v', '--verbose',
-                        action='store_true',
-                        dest='verbose',
-                        help='verbose/debug output',
-                        default=False)
-    parser.add_argument('--composer',
-                        help='composer executable')
-    parser.add_argument('--composer-dir',
-                        dest='composer_dir',
-                        help='composer directory')
-    parser.add_argument('--vendor-dir',
-                        dest='vendor_dir',
-                        help='vendor directory')
-    parser.add_argument('--php-dir',
-                        dest='php_dir',
-                        help='PHP directory')
-    parser.add_argument('--bin-dir',
-                        dest='bin_dir',
-                        help='bin directory')
 
-    return parser.parse_args()
+        parser.add_argument('-v', '--verbose',
+                            action='store_true',
+                            dest='verbose',
+                            help='verbose output',
+                            default=False)
 
+        parser.add_argument('--composer',
+                            help='composer executable')
 
-def install_vendor_symlinks(package_type, metadata, args):
-    if args.verbose:
-        print 'composer-install: install_vendor_symlinks: package_type = "%s"' % package_type
+        parser.add_argument('--composer-dir',
+                            dest='composer_dir',
+                            help='composer directory')
 
-    if not package_type in metadata:
-        return
+        parser.add_argument('--vendor-dir',
+                            dest='vendor_dir',
+                            help='vendor directory')
 
-    for package in metadata[package_type]:
-        if args.verbose:
-            print 'composer-install: install_vendor_symlinks:     package = "%s"' % package
+        parser.add_argument('--php-dir',
+                            dest='php_dir',
+                            help='PHP directory')
 
-        # Skip packages like "php" and "ext-*"
-        if not '/' in package:
-            continue
+        parser.add_argument('--bin-dir',
+                            dest='bin_dir',
+                            help='bin directory')
 
-        vendor, project = package.split('/')
-
-        if args.verbose:
-            print 'composer-install: install_vendor_symlinks:         package vendor = "%s"' % vendor
-            print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
-
-        # Package vendor directory
-        vendor_dir = os.path.join('vendor', vendor)
-        if args.verbose:
-            print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
-        if not os.path.exists(vendor_dir):
-            os.makedirs(vendor_dir, 0755)
-
-        # Package project directory
-        project_dir      = os.path.join(vendor_dir, project)
-        project_dir_real = os.path.join(args.composer_dir, vendor, project)
-        if args.verbose:
-            print 'composer-install: install_vendor_symlinks:         package project dir = "%s"' % project_dir
-            print 'composer-install: install_vendor_symlinks:         package project dir real= "%s"' % project_dir_real
-        if not os.path.islink(project_dir):
-            os.symlink(project_dir_real, project_dir)
+        return parser.parse_args()
 
 
-def install_bin(metadata, args):
-    if not 'bin' in metadata:
-        return
+    def installVendorDir(self):
+        vendor_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + \
+                     os.sep + self.metadata['name'] + \
+                     os.sep + '/vendor'
 
-    package_dir = os.path.join(args.composer_dir, metadata['name'])
-
-    bin_dir = RPM_BUILD_ROOT + args.bin_dir
-    if not os.path.exists(bin_dir):
-        os.makedirs(bin_dir, 0755)
-
-    for bin in metadata['bin']:
-        bin_src     = os.path.join(package_dir, bin)
-        bin_symlink = os.path.join(bin_dir, os.path.basename(bin))
-
-        if args.verbose:
-            print 'composer-install: install_bin: bin = "%s"' % bin
-            print 'composer-install: install_bin:     src = "%s"' % bin_src
-            print 'composer-install: install_bin:     symlink = "%s"' % bin_symlink
-
-        os.symlink(bin_src, bin_symlink);
+        if not os.path.exists(vendor_dir) or (os.path.exists(dst_dir)):
+            subprocess.check_call('mkdir -p -m 0755 ' + vendor_dir, shell=True)
 
 
-def install(metadata, args):
-    if not 'name' in metadata:
-        print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
-        sys.exit(1)
+    def installVendorSymlinks(self, package_type):
+        if self.args.verbose:
+            print 'composer-install: install_vendor_symlinks: package_type = "%s"' % package_type
 
-    dst_dir = RPM_BUILD_ROOT + args.composer_dir + os.sep + metadata['name']
-    subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
+        if not package_type in self.metadata:
+            return
 
-    install_vendor_symlinks('require',     metadata, args)
-    install_vendor_symlinks('require-dev', metadata, args)
-    install_vendor_symlinks('suggest',     metadata, args)
+        for package in self.metadata[package_type]:
+            if self.args.verbose:
+                print 'composer-install: install_vendor_symlinks:     package = "%s"' % package
 
-    # Set config to use global PHP include path
-    subprocess.check_call(args.composer + ' --no-ansi config use-include-path true', shell=True)
-    # Create auto-load files
-    subprocess.check_call(args.composer + ' --no-ansi dump-autoload', shell=True)
+            # Skip packages like "php" and "ext-*"
+            if not '/' in package:
+                continue
 
-    subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+            vendor, project = package.split('/')
 
-    install_bin(metadata, args)
+            if self.args.verbose:
+                print 'composer-install: install_vendor_symlinks:         package vendor = "%s"' % vendor
+                print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
+
+            # Package vendor directory
+            vendor_dir = os.path.join('vendor', vendor)
+            if self.args.verbose:
+                print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
+            if not os.path.exists(vendor_dir):
+                os.makedirs(vendor_dir, 0755)
+
+            # Package project directory
+            project_dir      = os.path.join(vendor_dir, project)
+            project_dir_real = os.path.join(self.args.composer_dir, vendor, project)
+            if self.args.verbose:
+                print 'composer-install: install_vendor_symlinks:         package project dir = "%s"' % project_dir
+                print 'composer-install: install_vendor_symlinks:         package project dir real= "%s"' % project_dir_real
+            if not os.path.islink(project_dir):
+                os.symlink(project_dir_real, project_dir)
 
 
-def main():
-    args = parse_args()
+    def installBin(self):
+        if not 'bin' in self.metadata:
+            return
 
-    if args.verbose:
-        print 'RPM_PACKAGE_NAME = "%s"' % RPM_PACKAGE_NAME
-        print 'RPM_PACKAGE_VERSION = "%s"' % RPM_PACKAGE_VERSION
-        print 'RPM_BUILD_ROOT = "%s"' % RPM_BUILD_ROOT
-        print 'RPM_DOC_DIR = "%s"' % RPM_DOC_DIR
-        print args
+        package_dir = os.path.join(self.args.composer_dir, self.metadata['name'])
 
-    if not os.path.exists('composer.json'):
-        print >> sys.stderr, 'ERROR: Composer install: composer.json not found'
-        sys.exit(1)
+        bin_dir = self.RPM_BUILD_ROOT + self.args.bin_dir
+        if not os.path.exists(bin_dir):
+            os.makedirs(bin_dir, 0755)
 
-    metadata = json.load(open('composer.json'))
+        for bin in self.metadata['bin']:
+            bin_src     = os.path.join(package_dir, bin)
+            bin_symlink = os.path.join(bin_dir, os.path.basename(bin))
 
-    install(metadata, args)
+            if self.args.verbose:
+                print 'composer-install: install_bin: bin = "%s"' % bin
+                print 'composer-install: install_bin:     src = "%s"' % bin_src
+                print 'composer-install: install_bin:     symlink = "%s"' % bin_symlink
+
+            os.symlink(bin_src, bin_symlink);
+
+
+    def install(self):
+        if not 'name' in self.metadata:
+            print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
+            sys.exit(1)
+
+        # vendor directory
+        dst_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + os.sep + self.metadata['name']
+        subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
+
+        # vendor symlinks
+        self.installVendorSymlinks('require')
+        self.installVendorSymlinks('require-dev')
+        self.installVendorSymlinks('suggest')
+
+        # Set config to use global PHP include path
+        subprocess.check_call(self.args.composer + ' --no-ansi config use-include-path true', shell=True)
+        # Create auto-load files
+        subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
+
+        subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+
+        self.installBin()
+
 
 
 if __name__ == '__main__':
-    main()
+    ComposerInstall()
