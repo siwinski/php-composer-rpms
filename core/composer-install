@@ -53,9 +53,13 @@ class ComposerInstall:
             print >> sys.stderr, 'ERROR: Composer install: composer.json not found'
             sys.exit(1)
 
-        self.metadata = json.load(open('composer.json'))
+        self.metadata         = json.load(open('composer.json'))
 
-        self.install()
+        self.vendorDir        = 'vendor'
+        self.installDir       = None
+        self.installVendorDir = None
+
+        self._install()
 
 
     def parseArgs(self):
@@ -101,8 +105,7 @@ class ComposerInstall:
             sys.exit(1)
 
         # vendor directory
-        dst_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + os.sep + self.metadata['name']
-        subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
+        self._installDirs()
 
         # vendor symlinks
         self._installVendorSymlinks('require')
@@ -114,18 +117,32 @@ class ComposerInstall:
         # Create auto-load files
         subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
 
-        subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+        subprocess.check_call('cp -pr * ' + self.installDir, shell=True)
 
         self._installBin()
 
 
-    def _installVendorDir(self):
-        vendor_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + \
-                     os.sep + self.metadata['name'] + \
-                     os.sep + '/vendor'
+    def _installDirs(self):
+        self.installDir = self.RPM_BUILD_ROOT + self.args.composer_dir + \
+                          os.sep + self.metadata['name']
 
-        if not os.path.exists(vendor_dir) or (os.path.exists(dst_dir)):
-            subprocess.check_call('mkdir -p -m 0755 ' + vendor_dir, shell=True)
+        if self.args.verbose:
+            print 'composer-install: _installDirs: installDir = "%s"' % self.installDir
+
+        if self.args.vendor_dir:
+            self.vendorDir = self.args.vendor_dir
+        elif 'config' in self.metadata and 'vendor-dir' in self.metadata['config'] and self.metadata['config']['vendor-dir']:
+            self.vendorDir = self.metadata['config']['vendor-dir']
+
+        if self.args.verbose:
+            print 'composer-install: _installDirs: vendorDir = "%s"' % self.vendorDir
+
+        self.installVendorDir = self.installDir + os.sep + self.vendorDir
+
+        if self.args.verbose:
+            print 'composer-install: _installDirs: installVendorDir = "%s"' % self.installVendorDir
+
+        subprocess.check_call('mkdir -p -m 0755 ' + self.installVendorDir, shell=True)
 
 
     def _installVendorSymlinks(self, package_type):
@@ -150,7 +167,7 @@ class ComposerInstall:
                 print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
 
             # Package vendor directory
-            vendor_dir = os.path.join('vendor', vendor)
+            vendor_dir = os.path.join(self.vendorDir, vendor)
             if self.args.verbose:
                 print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
             if not os.path.exists(vendor_dir):
@@ -161,7 +178,7 @@ class ComposerInstall:
             project_dir_real = os.path.join(self.args.composer_dir, vendor, project)
             if self.args.verbose:
                 print 'composer-install: install_vendor_symlinks:         package project dir = "%s"' % project_dir
-                print 'composer-install: install_vendor_symlinks:         package project dir real= "%s"' % project_dir_real
+                print 'composer-install: install_vendor_symlinks:         package project dir real = "%s"' % project_dir_real
             if not os.path.islink(project_dir):
                 os.symlink(project_dir_real, project_dir)
 
