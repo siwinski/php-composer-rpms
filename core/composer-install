@@ -38,6 +38,9 @@ class ComposerInstall:
     RPM_BUILD_ROOT      = os.environ.get('RPM_BUILD_ROOT')
     RPM_DOC_DIR         = os.environ.get('RPM_DOC_DIR')
 
+    DEFAULT_BIN_DIR     = 'vendor/bin'
+    DEFAULT_SYS_BIN_DIR = '/usr/bin'
+
 
     def __init__(self):
         self.args = self.parseArgs()
@@ -56,6 +59,7 @@ class ComposerInstall:
         self.metadata         = json.load(open('composer.json'))
 
         self.vendorDir        = 'vendor'
+
         self.installDir       = None
         self.installVendorDir = None
 
@@ -77,6 +81,14 @@ class ComposerInstall:
                             help='verbose output',
                             default=False)
 
+        parser.add_argument('--vendor-dir',
+                            dest='vendor_dir',
+                            help='composer package vendor directory (default: composer.json {"config": {"vendor-dir": ""}} || "vendor")')
+
+        parser.add_argument('--bin-dir',
+                            dest='bin_dir',
+                            help='composer package bin directory (default: composer.json {"config": {"bin-dir": ""}} || "' + self.DEFAULT_BIN_DIR + '")')
+
         parser.add_argument('--composer',
                             help='composer executable')
 
@@ -84,17 +96,13 @@ class ComposerInstall:
                             dest='composer_dir',
                             help='composer directory')
 
-        parser.add_argument('--vendor-dir',
-                            dest='vendor_dir',
-                            help='vendor directory')
-
         parser.add_argument('--php-dir',
                             dest='php_dir',
                             help='PHP directory')
 
-        parser.add_argument('--bin-dir',
-                            dest='bin_dir',
-                            help='bin directory')
+        parser.add_argument('--sys-bin-dir',
+                            dest='sys_bin_dir',
+                            help='system bin directory (default: "' + self.DEFAULT_SYS_BIN_DIR + '")')
 
         return parser.parse_args()
 
@@ -133,12 +141,10 @@ class ComposerInstall:
             self.vendorDir = self.args.vendor_dir
         elif 'config' in self.metadata and 'vendor-dir' in self.metadata['config'] and self.metadata['config']['vendor-dir']:
             self.vendorDir = self.metadata['config']['vendor-dir']
-
         if self.args.verbose:
             print 'composer-install: _installDirs: vendorDir = "%s"' % self.vendorDir
 
         self.installVendorDir = self.installDir + os.sep + self.vendorDir
-
         if self.args.verbose:
             print 'composer-install: _installDirs: installVendorDir = "%s"' % self.installVendorDir
 
@@ -187,22 +193,77 @@ class ComposerInstall:
         if not 'bin' in self.metadata:
             return
 
-        package_dir = os.path.join(self.args.composer_dir, self.metadata['name'])
+        self._installBinDirs()
 
-        bin_dir = self.RPM_BUILD_ROOT + self.args.bin_dir
-        if not os.path.exists(bin_dir):
-            os.makedirs(bin_dir, 0755)
+        packageDir = os.path.join(self.args.composer_dir, self.metadata['name'])
+        if self.args.verbose:
+            print 'composer-install: _installBin: packageDir = "%s"' % packageDir
 
         for bin in self.metadata['bin']:
-            bin_src     = os.path.join(package_dir, bin)
-            bin_symlink = os.path.join(bin_dir, os.path.basename(bin))
+            binSrc        = os.path.join(packageDir, bin)
+            binPkgSymlink = os.path.join(self.installBinDir, os.path.basename(bin))
+            binSysSymlink = os.path.join(self.installSysBinDir, os.path.basename(bin))
 
             if self.args.verbose:
-                print 'composer-install: install_bin: bin = "%s"' % bin
-                print 'composer-install: install_bin:     src = "%s"' % bin_src
-                print 'composer-install: install_bin:     symlink = "%s"' % bin_symlink
+                print 'composer-install: _installBin: bin = "%s"' % bin
+                print 'composer-install: _installBin:     src = "%s"' % binSrc
+                print 'composer-install: _installBin:     pkg symlink = "%s"' % binPkgSymlink
+                print 'composer-install: _installBin:     sys symlink = "%s"' % binSysSymlink
 
-            os.symlink(bin_src, bin_symlink);
+            os.symlink(binSrc, binPkgSymlink)
+            os.symlink(binSrc, binSysSymlink)
+
+
+    def _installBinDirs(self):
+        #
+        # binDir
+        #
+
+        self.binDir = self.DEFAULT_BIN_DIR
+
+        if self.args.bin_dir:
+            self.binDir = self.args.bin_dir
+        elif 'config' in self.metadata and 'bin-dir' in self.metadata['config'] and self.metadata['config']['bin-dir']:
+            self.binDir = self.metadata['config']['bin-dir']
+
+        if self.args.verbose:
+            print 'composer-install: _installBin: binDir = "%s"' % self.binDir
+
+        #
+        # installBinDir
+        #
+
+        self.installBinDir = self.installDir + os.sep + self.binDir
+
+        if self.args.verbose:
+            print 'composer-install: _installBin: installBinDir = "%s"' % self.installBinDir
+
+        if not os.path.exists(self.installBinDir):
+            os.makedirs(self.installBinDir, 0755)
+
+        #
+        # sysBinDir
+        #
+
+        self.sysBinDir = self.DEFAULT_SYS_BIN_DIR
+
+        if self.args.sys_bin_dir:
+            self.sysBinDir = self.args.sys_bin_dir
+
+        if self.args.verbose:
+            print 'composer-install: _installBin: sysBinDir = "%s"' % self.sysBinDir
+
+        #
+        # installSysBinDir
+        #
+
+        self.installSysBinDir = self.RPM_BUILD_ROOT + self.sysBinDir
+
+        if self.args.verbose:
+            print 'composer-install: _installBin: installSysBinDir = "%s"' % self.installSysBinDir
+
+        if not os.path.exists(self.installSysBinDir):
+            os.makedirs(self.installSysBinDir, 0755)
 
 
 
