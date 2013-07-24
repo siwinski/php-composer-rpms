@@ -108,6 +108,8 @@ Requires:      php-zip
 Requires:      php-filter
 Requires:      php-phar
 %endif
+# RPM build
+Requires:      python-argparse
 
 # Common package naming (php-composervendor-composerproject)
 Provides:      php-composer-composer = %{version}-%{release}

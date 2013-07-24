@@ -44,18 +44,24 @@ def parse_args():
   RPM_BUILD_ROOT        RPM spec %{buildroot} (usually set by rpmbuild)
   RPM_DOC_DIR           RPM spec %{_docdir} (usually set by rpmbuild)
 """, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('-v', '--verbose', '-d', '--debug',
+    parser.add_argument('-v', '--verbose',
                         action='store_true',
                         dest='verbose',
                         help='verbose/debug output',
                         default=False)
     parser.add_argument('--composer',
                         help='composer executable')
-    parser.add_argument('--composer_dir',
+    parser.add_argument('--composer-dir',
+                        dest='composer_dir',
                         help='composer directory')
-    parser.add_argument('--php_dir',
+    parser.add_argument('--vendor-dir',
+                        dest='vendor_dir',
+                        help='vendor directory')
+    parser.add_argument('--php-dir',
+                        dest='php_dir',
                         help='PHP directory')
-    parser.add_argument('--bin_dir',
+    parser.add_argument('--bin-dir',
+                        dest='bin_dir',
                         help='bin directory')
 
     return parser.parse_args()
