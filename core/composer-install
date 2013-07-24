@@ -95,7 +95,31 @@ class ComposerInstall:
         return parser.parse_args()
 
 
-    def installVendorDir(self):
+    def _install(self):
+        if not 'name' in self.metadata:
+            print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
+            sys.exit(1)
+
+        # vendor directory
+        dst_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + os.sep + self.metadata['name']
+        subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
+
+        # vendor symlinks
+        self._installVendorSymlinks('require')
+        self._installVendorSymlinks('require-dev')
+        self._installVendorSymlinks('suggest')
+
+        # Set config to use global PHP include path
+        subprocess.check_call(self.args.composer + ' --no-ansi config use-include-path true', shell=True)
+        # Create auto-load files
+        subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
+
+        subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
+
+        self._installBin()
+
+
+    def _installVendorDir(self):
         vendor_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + \
                      os.sep + self.metadata['name'] + \
                      os.sep + '/vendor'
@@ -104,7 +128,7 @@ class ComposerInstall:
             subprocess.check_call('mkdir -p -m 0755 ' + vendor_dir, shell=True)
 
 
-    def installVendorSymlinks(self, package_type):
+    def _installVendorSymlinks(self, package_type):
         if self.args.verbose:
             print 'composer-install: install_vendor_symlinks: package_type = "%s"' % package_type
 
@@ -142,7 +166,7 @@ class ComposerInstall:
                 os.symlink(project_dir_real, project_dir)
 
 
-    def installBin(self):
+    def _installBin(self):
         if not 'bin' in self.metadata:
             return
 
@@ -162,30 +186,6 @@ class ComposerInstall:
                 print 'composer-install: install_bin:     symlink = "%s"' % bin_symlink
 
             os.symlink(bin_src, bin_symlink);
-
-
-    def install(self):
-        if not 'name' in self.metadata:
-            print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
-            sys.exit(1)
-
-        # vendor directory
-        dst_dir = self.RPM_BUILD_ROOT + self.args.composer_dir + os.sep + self.metadata['name']
-        subprocess.check_call('mkdir -p -m 0755 ' + dst_dir + '/vendor', shell=True)
-
-        # vendor symlinks
-        self.installVendorSymlinks('require')
-        self.installVendorSymlinks('require-dev')
-        self.installVendorSymlinks('suggest')
-
-        # Set config to use global PHP include path
-        subprocess.check_call(self.args.composer + ' --no-ansi config use-include-path true', shell=True)
-        # Create auto-load files
-        subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
-
-        subprocess.check_call('cp -pr * ' + dst_dir, shell=True)
-
-        self.installBin()
 
 
 
