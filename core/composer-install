@@ -89,6 +89,10 @@ class ComposerInstall:
                             dest='bin_dir',
                             help='composer package bin directory (default: composer.json {"config": {"bin-dir": ""}} || "' + self.DEFAULT_BIN_DIR + '")')
 
+        parser.add_argument('--sys-bin-dir',
+                            dest='sys_bin_dir',
+                            help='system bin directory (default: "' + self.DEFAULT_SYS_BIN_DIR + '")')
+
         parser.add_argument('--composer',
                             help='composer executable')
 
@@ -100,9 +104,11 @@ class ComposerInstall:
                             dest='php_dir',
                             help='PHP directory')
 
-        parser.add_argument('--sys-bin-dir',
-                            dest='sys_bin_dir',
-                            help='system bin directory (default: "' + self.DEFAULT_SYS_BIN_DIR + '")')
+        parser.add_argument('--no-bin',
+                            action='store_true',
+                            dest='no_bin',
+                            help='do not install any bin symlinks (pkg nor sys)',
+                            default=False)
 
         return parser.parse_args()
 
@@ -190,7 +196,7 @@ class ComposerInstall:
 
 
     def _installBin(self):
-        if not 'bin' in self.metadata:
+        if not 'bin' in self.metadata or self.args.no_bin:
             return
 
         self._installBinDirs()
