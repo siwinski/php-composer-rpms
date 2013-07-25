@@ -63,6 +63,11 @@ class ComposerInstall:
         self.installDir       = None
         self.installVendorDir = None
 
+        self.binDir           = None
+        self.installBinDir    = None
+        self.sysBinDir        = None
+        self.installSysBinDir = None
+
         self._install()
 
 
