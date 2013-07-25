@@ -28,6 +28,7 @@ import json
 import os
 import sys
 import argparse
+import shutil
 import subprocess
 
 
@@ -39,15 +40,12 @@ class ComposerInstall:
     RPM_DOC_DIR          = os.environ.get('RPM_DOC_DIR')
 
     DEFAULT_COMPOSER_DIR = '/usr/share/composer'
-
     DEFAULT_VENDOR_DIR   = 'vendor'
-
-    DEFAULT_BIN_DIR      = 'vendor/bin'
     DEFAULT_SYS_BIN_DIR  = '/usr/bin'
 
 
     def __init__(self):
-        self.args = self.parseArgs()
+        self._initArgs()
 
         if self.args.verbose:
             print 'RPM_PACKAGE_NAME = "%s"' % self.RPM_PACKAGE_NAME
@@ -62,23 +60,31 @@ class ComposerInstall:
 
         self.metadata         = json.load(open('composer.json'))
 
-        self.vendorDir        = self.DEFAULT_VENDOR_DIR
+        self.vendorDir            = None
 
         self.composerDir          = None
         self.buildrootComposerDir = None
 
-        self.installDir       = None
-        self.installVendorDir = None
+        self.packageDir           = None
+        self.buildrootPackageDir  = None
 
-        self.binDir           = None
-        self.installBinDir    = None
-        self.sysBinDir        = None
-        self.installSysBinDir = None
+        self.noBin                = not 'bin' in self.metadata or self.args.no_bin
+        self.sysBinDir            = None
+        self.buildrootSysBinDir   = None
+
+        if not 'name' in self.metadata or not self.metadata['name']:
+            print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
+            sys.exit(1)
+
+        self._initVendorDir()
+        self._initComposerDirs()
+        self._initPackageDirs()
+        self._initBinDirs()
 
         self._install()
 
 
-    def parseArgs(self):
+    def _initArgs(self):
         parser = argparse.ArgumentParser(description='Installs a package from a composer.json file from the current working directory.',
                                          epilog="""required environment variables:
   RPM_PACKAGE_NAME      RPM spec %{name} (usually set by rpmbuild)
@@ -96,10 +102,6 @@ class ComposerInstall:
         parser.add_argument('--vendor-dir',
                             dest='vendor_dir',
                             help='composer package vendor directory (default: composer.json {"config": {"vendor-dir": ""}} || "' + self.DEFAULT_VENDOR_DIR + '")')
-
-        parser.add_argument('--bin-dir',
-                            dest='bin_dir',
-                            help='composer package bin directory (default: composer.json {"config": {"bin-dir": ""}} || "' + self.DEFAULT_BIN_DIR + '")')
 
         parser.add_argument('--sys-bin-dir',
                             dest='sys_bin_dir',
@@ -122,33 +124,23 @@ class ComposerInstall:
                             help='do not install any bin symlinks (pkg nor sys)',
                             default=False)
 
-        return parser.parse_args()
+        self.args = parser.parse_args()
 
 
-    def _install(self):
-        if not 'name' in self.metadata:
-            print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
-            sys.exit(1)
+    def _initVendorDir(self):
+        self.vendorDir = self.DEFAULT_VENDOR_DIR
 
-        self._installComposerDir()
-        self._installDirs()
+        if self.args.verbose:
+            print 'composer-install: _initVendorDir: vendorDir = "%s"' % self.vendorDir
 
-        # vendor symlinks
-        self._installVendorSymlinks('require')
-        self._installVendorSymlinks('require-dev')
-        self._installVendorSymlinks('suggest')
+        if not os.path.isdir(self.vendorDir):
+            if os.path.lexists(self.vendorDir):
+                os.unlink(self.vendorDir)
 
-        # Set config to use global PHP include path
-        subprocess.check_call(self.args.composer + ' --no-ansi config use-include-path true', shell=True)
-        # Create auto-load files
-        subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
-
-        subprocess.check_call('cp -pr * ' + self.installDir, shell=True)
-
-        self._installBin()
+            os.makedirs(self.vendorDir, 0755)
 
 
-    def _installComposerDir(self):
+    def _initComposerDirs(self):
         #
         # composerDir
         #
@@ -173,116 +165,34 @@ class ComposerInstall:
         os.makedirs(self.buildrootComposerDir, 0755)
 
 
-    def _installDirs(self):
-        self.installDir = self.buildrootComposerDir + \
-                          os.sep + self.metadata['name']
-
-        if self.args.verbose:
-            print 'composer-install: _installDirs: installDir = "%s"' % self.installDir
-
-        if self.args.vendor_dir:
-            self.vendorDir = self.args.vendor_dir
-        elif 'config' in self.metadata and 'vendor-dir' in self.metadata['config'] and self.metadata['config']['vendor-dir']:
-            self.vendorDir = self.metadata['config']['vendor-dir']
-        if self.args.verbose:
-            print 'composer-install: _installDirs: vendorDir = "%s"' % self.vendorDir
-
-        self.installVendorDir = self.installDir + os.sep + self.vendorDir
-        if self.args.verbose:
-            print 'composer-install: _installDirs: installVendorDir = "%s"' % self.installVendorDir
-
-        subprocess.check_call('mkdir -p -m 0755 ' + self.installVendorDir, shell=True)
-
-
-    def _installVendorSymlinks(self, package_type):
-        if self.args.verbose:
-            print 'composer-install: install_vendor_symlinks: package_type = "%s"' % package_type
-
-        if not package_type in self.metadata:
+    def _initPackageDirs(self):
+        if not self.composerDir:
             return
 
-        for package in self.metadata[package_type]:
-            if self.args.verbose:
-                print 'composer-install: install_vendor_symlinks:     package = "%s"' % package
+        #
+        # packageDir
+        #
 
-            # Skip packages like "php" and "ext-*"
-            if not '/' in package:
-                continue
+        self.packageDir = self.composerDir + os.sep + self.metadata['name']
 
-            vendor, project = package.split('/')
+        if self.args.verbose:
+            print 'package-install: _installPackageDir: packageDir = "%s"' % self.packageDir
 
-            if self.args.verbose:
-                print 'composer-install: install_vendor_symlinks:         package vendor = "%s"' % vendor
-                print 'composer-install: install_vendor_symlinks:         package project = "%s"' % project
+        #
+        # buildrootPackageDir
+        #
 
-            # Package vendor directory
-            vendor_dir = os.path.join(self.vendorDir, vendor)
-            if self.args.verbose:
-                print 'composer-install: install_vendor_symlinks:         package vendor dir = "%s"' % vendor_dir
-            if not os.path.exists(vendor_dir):
-                os.makedirs(vendor_dir, 0755)
+        self.buildrootPackageDir = self.RPM_BUILD_ROOT + self.packageDir
 
-            # Package project directory
-            project_dir      = os.path.join(vendor_dir, project)
-            project_dir_real = os.path.join(self.args.composer_dir, vendor, project)
-            if self.args.verbose:
-                print 'composer-install: install_vendor_symlinks:         package project dir = "%s"' % project_dir
-                print 'composer-install: install_vendor_symlinks:         package project dir real = "%s"' % project_dir_real
-            if not os.path.islink(project_dir):
-                os.symlink(project_dir_real, project_dir)
+        if self.args.verbose:
+            print 'package-install: _installPackageDir: buildrootPackageDir = "%s"' % self.buildrootPackageDir
+
+        os.makedirs(self.buildrootPackageDir, 0755)
 
 
-    def _installBin(self):
-        if not 'bin' in self.metadata or self.args.no_bin:
+    def _initBinDirs(self):
+        if self.noBin:
             return
-
-        self._installBinDirs()
-
-        packageDir = os.path.join(self.args.composer_dir, self.metadata['name'])
-        if self.args.verbose:
-            print 'composer-install: _installBin: packageDir = "%s"' % packageDir
-
-        for bin in self.metadata['bin']:
-            binSrc        = os.path.join(packageDir, bin)
-            binPkgSymlink = os.path.join(self.installBinDir, os.path.basename(bin))
-            binSysSymlink = os.path.join(self.installSysBinDir, os.path.basename(bin))
-
-            if self.args.verbose:
-                print 'composer-install: _installBin: bin = "%s"' % bin
-                print 'composer-install: _installBin:     src = "%s"' % binSrc
-                print 'composer-install: _installBin:     pkg symlink = "%s"' % binPkgSymlink
-                print 'composer-install: _installBin:     sys symlink = "%s"' % binSysSymlink
-
-            os.symlink(binSrc, binPkgSymlink)
-            os.symlink(binSrc, binSysSymlink)
-
-
-    def _installBinDirs(self):
-        #
-        # binDir
-        #
-
-        self.binDir = self.DEFAULT_BIN_DIR
-
-        if self.args.bin_dir:
-            self.binDir = self.args.bin_dir
-        elif 'config' in self.metadata and 'bin-dir' in self.metadata['config'] and self.metadata['config']['bin-dir']:
-            self.binDir = self.metadata['config']['bin-dir']
-
-        if self.args.verbose:
-            print 'composer-install: _installBin: binDir = "%s"' % self.binDir
-
-        #
-        # installBinDir
-        #
-
-        self.installBinDir = self.installDir + os.sep + self.binDir
-
-        if self.args.verbose:
-            print 'composer-install: _installBin: installBinDir = "%s"' % self.installBinDir
-
-        if not os.path.exists(self.installBinDir):
-            os.makedirs(self.installBinDir, 0755)
 
         #
         # sysBinDir
@@ -297,16 +207,92 @@ class ComposerInstall:
             print 'composer-install: _installBin: sysBinDir = "%s"' % self.sysBinDir
 
         #
-        # installSysBinDir
+        # buildrootSysBinDir
         #
 
-        self.installSysBinDir = self.RPM_BUILD_ROOT + self.sysBinDir
+        self.buildrootSysBinDir = self.RPM_BUILD_ROOT + self.sysBinDir
 
         if self.args.verbose:
-            print 'composer-install: _installBin: installSysBinDir = "%s"' % self.installSysBinDir
+            print 'composer-install: _installBin: buildrootSysBinDir = "%s"' % self.buildrootSysBinDir
 
-        if not os.path.exists(self.installSysBinDir):
-            os.makedirs(self.installSysBinDir, 0755)
+        os.makedirs(self.buildrootSysBinDir, 0755)
+
+
+    def _install(self):
+        # vendor symlinks
+        self._installVendorSymlinks('require')
+        self._installVendorSymlinks('require-dev')
+        self._installVendorSymlinks('suggest')
+
+        # Set config to use global PHP include path
+        subprocess.check_call(self.args.composer + ' --no-ansi config use-include-path true', shell=True)
+        # Create auto-load files
+        subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
+
+        subprocess.check_call('cp -pr * ' + self.buildrootPackageDir, shell=True)
+
+        self._installBin()
+
+
+    def _installVendorSymlinks(self, packageType):
+        if self.args.verbose:
+            print 'composer-install: _installVendorSymlinks: packageType = "%s"' % packageType
+
+        if not packageType in self.metadata:
+            return
+
+        for package in self.metadata[packageType]:
+            if self.args.verbose:
+                print 'composer-install: _installVendorSymlinks:     package = "%s"' % package
+
+            # Skip packages like "php", "ext-*", and "lib-*"
+            if not '/' in package:
+                continue
+
+            vendor, project = package.split('/')
+
+            if self.args.verbose:
+                print 'composer-install: _installVendorSymlinks:         package vendor = "%s"' % vendor
+                print 'composer-install: _installVendorSymlinks:         package project = "%s"' % project
+
+            # Package vendor directory
+            vendorDir = os.path.join(self.vendorDir, vendor)
+            if self.args.verbose:
+                print 'composer-install: _installVendorSymlinks:         package vendor dir = "%s"' % vendorDir
+            if not os.path.isdir(vendorDir):
+                if os.path.lexists(vendorDir):
+                    os.remove(vendorDir)
+
+                os.makedirs(vendorDir, 0755)
+
+            # Package project directory
+            projectDir     = os.path.join(vendorDir, project)
+            projectDirReal = os.path.join(self.composerDir, vendor, project)
+            if self.args.verbose:
+                print 'composer-install: _installVendorSymlinks:         package project dir = "%s"' % projectDir
+                print 'composer-install: _installVendorSymlinks:         package project dir real = "%s"' % projectDirReal
+            if os.path.lexists(projectDir):
+                if os.path.isdir(projectDir):
+                    shutil.rmtree(projectDir)
+                else:
+                    os.remove(projectDir)
+            os.symlink(projectDirReal, projectDir)
+
+
+    def _installBin(self):
+        if self.noBin:
+            return
+
+        for bin in self.metadata['bin']:
+            binSrc     = os.path.join(self.packageDir, bin)
+            binSymlink = os.path.join(self.buildrootSysBinDir, os.path.basename(bin))
+
+            if self.args.verbose:
+                print 'composer-install: _installBin: bin = "%s"' % bin
+                print 'composer-install: _installBin:     src = "%s"' % binSrc
+                print 'composer-install: _installBin:     symlink = "%s"' % binSymlink
+
+            os.symlink(binSrc, binSymlink)
 
 
 
