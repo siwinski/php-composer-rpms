@@ -52,8 +52,8 @@ $(PKGS): PKG_FILENAME=$(shell basename "$(PKG_SOURCE)")
 $(PKGS): PKG_COMMIT=$(shell echo "$(PKG_SOURCE)" | sed 's#$(PKG_FILENAME)##' | xargs basename)
 $(PKGS): setup
 	[ -e rpmbuild/SOURCES/$(PKG_SOURCE) ] || spectool $(SPECTOOL_OPTIONS) $@
-	@[ ! -e rpmbuild/SOURCES/$(PKG_FILENAME) ] && [ -e rpmbuild/SOURCES/$(PKG_COMMIT) ] \
-                && mv rpmbuild/SOURCES/$(PKG_COMMIT) rpmbuild/SOURCES/$(PKG_FILENAME)
+	[ ! -e rpmbuild/SOURCES/$(PKG_FILENAME) ] && [ -e rpmbuild/SOURCES/$(PKG_COMMIT) ] \
+                && mv rpmbuild/SOURCES/$(PKG_COMMIT) rpmbuild/SOURCES/$(PKG_FILENAME) || :
 	rpmbuild $(RPMBUILD_OPTIONS) -ba $@
 
 # TARGET: all           Make all core and pkgs RPMs

@@ -1,5 +1,5 @@
 
-%global github_owner       evert
+%global github_owner       fruux
 %global github_name        sabre-vobject
 %global github_version     2.0.7
 
@@ -12,7 +12,7 @@ Release:    1%{?dist}
 Summary:    An intuitive reader for iCalendar and vCard objects
 
 License:    BSD
-URL:        https://github.com/evert/sabre-vobject
+URL:        https://github.com/fruux/sabre-vobject
 Source0:    https://github.com/%{github_owner}/%{github_name}/archive/%{github_version}.tar.gz#/%{composer_vendor}-%{composer_project}.tar.gz
 
 BuildArch:  noarch
