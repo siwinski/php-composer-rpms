@@ -33,13 +33,17 @@ import subprocess
 
 
 class ComposerInstall:
-    RPM_PACKAGE_NAME    = os.environ.get('RPM_PACKAGE_NAME')
-    RPM_PACKAGE_VERSION = os.environ.get('RPM_PACKAGE_VERSION')
-    RPM_BUILD_ROOT      = os.environ.get('RPM_BUILD_ROOT')
-    RPM_DOC_DIR         = os.environ.get('RPM_DOC_DIR')
+    RPM_PACKAGE_NAME     = os.environ.get('RPM_PACKAGE_NAME')
+    RPM_PACKAGE_VERSION  = os.environ.get('RPM_PACKAGE_VERSION')
+    RPM_BUILD_ROOT       = os.environ.get('RPM_BUILD_ROOT')
+    RPM_DOC_DIR          = os.environ.get('RPM_DOC_DIR')
 
-    DEFAULT_BIN_DIR     = 'vendor/bin'
-    DEFAULT_SYS_BIN_DIR = '/usr/bin'
+    DEFAULT_COMPOSER_DIR = '/usr/share/composer'
+
+    DEFAULT_VENDOR_DIR   = 'vendor'
+
+    DEFAULT_BIN_DIR      = 'vendor/bin'
+    DEFAULT_SYS_BIN_DIR  = '/usr/bin'
 
 
     def __init__(self):
@@ -58,7 +62,10 @@ class ComposerInstall:
 
         self.metadata         = json.load(open('composer.json'))
 
-        self.vendorDir        = 'vendor'
+        self.vendorDir        = self.DEFAULT_VENDOR_DIR
+
+        self.composerDir          = None
+        self.buildrootComposerDir = None
 
         self.installDir       = None
         self.installVendorDir = None
@@ -88,7 +95,7 @@ class ComposerInstall:
 
         parser.add_argument('--vendor-dir',
                             dest='vendor_dir',
-                            help='composer package vendor directory (default: composer.json {"config": {"vendor-dir": ""}} || "vendor")')
+                            help='composer package vendor directory (default: composer.json {"config": {"vendor-dir": ""}} || "' + self.DEFAULT_VENDOR_DIR + '")')
 
         parser.add_argument('--bin-dir',
                             dest='bin_dir',
@@ -103,7 +110,7 @@ class ComposerInstall:
 
         parser.add_argument('--composer-dir',
                             dest='composer_dir',
-                            help='composer directory')
+                            help='composer directory (default: "' + self.DEFAULT_COMPOSER_DIR + '")')
 
         parser.add_argument('--php-dir',
                             dest='php_dir',
@@ -123,7 +130,7 @@ class ComposerInstall:
             print >> sys.stderr, 'ERROR: Composer install: "name" not defined in composer.json'
             sys.exit(1)
 
-        # vendor directory
+        self._installComposerDir()
         self._installDirs()
 
         # vendor symlinks
@@ -141,8 +148,33 @@ class ComposerInstall:
         self._installBin()
 
 
+    def _installComposerDir(self):
+        #
+        # composerDir
+        #
+
+        self.composerDir = self.DEFAULT_COMPOSER_DIR
+
+        if self.args.composer_dir:
+            self.composerDir = self.args.composer_dir
+
+        if self.args.verbose:
+            print 'composer-install: _installComposerDir: composerDir = "%s"' % self.composerDir
+
+        #
+        # buildrootComposerDir
+        #
+
+        self.buildrootComposerDir = self.RPM_BUILD_ROOT + self.composerDir
+
+        if self.args.verbose:
+            print 'composer-install: _installComposerDir: buildrootComposerDir = "%s"' % self.buildrootComposerDir
+
+        os.makedirs(self.buildrootComposerDir, 0755)
+
+
     def _installDirs(self):
-        self.installDir = self.RPM_BUILD_ROOT + self.args.composer_dir + \
+        self.installDir = self.buildrootComposerDir + \
                           os.sep + self.metadata['name']
 
         if self.args.verbose:
