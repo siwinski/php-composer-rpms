@@ -1,5 +1,5 @@
 diff --git composer.prov composer.prov
-index 59d168f..b1a92c4 100755
+index d2f968d..9e175c5 100755
 --- composer.prov
 +++ composer.prov
 @@ -27,6 +27,7 @@ Taken from composer.json.  See http://getcomposer.org/doc/04-schema.md for detai
@@ -10,16 +10,16 @@ index 59d168f..b1a92c4 100755
  import sys
  
  paths = [path.rstrip() for path in sys.stdin.readlines()]
-@@ -55,3 +56,7 @@ for path in paths:
-         print '=', version
-     else:
-         print
+@@ -64,3 +65,7 @@ for path in paths:
+                 print '=', version
+             else:
+                 print
 +
-+# Invoke the regular RPM provides generator to allow compatibility with RPM < 4.9 (no fileattrs)
-+p = subprocess.Popen(['/usr/lib/rpm/find-provides'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-+print p.communicate(input='\n'.join(paths))[0]
++    # Invoke the regular RPM provides generator to allow compatibility with RPM < 4.9 (no fileattrs)
++    p = subprocess.Popen(['/usr/lib/rpm/find-provides'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
++    print p.communicate(input='\n'.join(paths))[0]
 diff --git composer.req composer.req
-index 5b1dbcd..6610b1d 100755
+index f6fef65..73d4a9c 100755
 --- composer.req
 +++ composer.req
 @@ -28,6 +28,7 @@ Taken from composer.json.  See http://getcomposer.org/doc/04-schema.md for detai
@@ -34,20 +34,20 @@ index 5b1dbcd..6610b1d 100755
  
          print '\n'.join(deps)
  
-+    # Invoke the regular RPM requires generator to allow compatibility with RPM < 4.9 (no fileattrs)
-+    p = subprocess.Popen(['/usr/lib/rpm/find-requires'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-+    print p.communicate(input='\n'.join(paths))[0]
++        # Invoke the regular RPM requires generator to allow compatibility with RPM < 4.9 (no fileattrs)
++        p = subprocess.Popen(['/usr/lib/rpm/find-requires'], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
++        print p.communicate(input='\n'.join(paths))[0]
 +
  
  def process_version(require, version):
      deps = []
 diff --git macros.composer macros.composer
-index d079cce..eafcd28 100644
+index fda73df..8f6ef97 100644
 --- macros.composer
 +++ macros.composer
 @@ -14,5 +14,9 @@
  
- %composer_install  %{_rpmconfigdir}/composer-install --composer="%__composer" --composer_dir="%composer" --php_dir="%{_datadir}/php" --bin_dir="%{_bindir}"
+ %composer_install  %{_rpmconfigdir}/composer-install --composer="%__composer" --composer-dir="%composer" --php-dir="%{_datadir}/php" --sys-bin-dir="%{_bindir}"
  
 -# No-op macro to allow spec compatibility with RPM < 4.9 (no fileattrs)
 -%composer_find_provides_and_requires %{nil}
