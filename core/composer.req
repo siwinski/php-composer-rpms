@@ -50,11 +50,11 @@ def main():
             for name, version in metadata['require'].iteritems():
                 # php
                 if name == 'php':
-                    require = 'php-common'
+                    require = 'php(language)'
                     deps += process_version(require, version)
                 # ext-*
                 elif name.startswith('ext-'):
-                    require = name.replace('ext-','php-',1)
+                    require = name.replace('ext-', 'php-', 1)
                     deps += process_version(require, version)
                 # lib-*
                 elif name.startswith('lib-'):
