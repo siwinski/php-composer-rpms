@@ -58,17 +58,18 @@ class ComposerInstall:
             print >> sys.stderr, 'ERROR: Composer install: composer.json not found'
             sys.exit(1)
 
-        self.metadata         = json.load(open('composer.json'))
+        self.metadata             = json.load(open('composer.json'))
 
         self.vendorDir            = None
 
         self.composerDir          = None
         self.buildrootComposerDir = None
 
+        self.noPackageDir         = self.args.no_package_dir
         self.packageDir           = None
         self.buildrootPackageDir  = None
 
-        self.noBin                = not 'bin' in self.metadata or self.args.no_bin
+        self.noBin                = self.args.no_package_dir or not 'bin' in self.metadata or self.args.no_bin
         self.sysBinDir            = None
         self.buildrootSysBinDir   = None
 
@@ -99,10 +100,6 @@ class ComposerInstall:
                             help='verbose output',
                             default=False)
 
-        parser.add_argument('--vendor-dir',
-                            dest='vendor_dir',
-                            help='composer package vendor directory (default: composer.json {"config": {"vendor-dir": ""}} || "' + self.DEFAULT_VENDOR_DIR + '")')
-
         parser.add_argument('--sys-bin-dir',
                             dest='sys_bin_dir',
                             help='system bin directory (default: "' + self.DEFAULT_SYS_BIN_DIR + '")')
@@ -121,14 +118,23 @@ class ComposerInstall:
         parser.add_argument('--no-bin',
                             action='store_true',
                             dest='no_bin',
-                            help='do not install any bin symlinks (pkg nor sys)',
+                            help='do not install bin symlinks',
+                            default=False)
+
+        parser.add_argument('--no-package-dir',
+                            action='store_true',
+                            dest='no_package_dir',
+                            help='do not install package directory (i.e. "composer-dir/name"; also implies --no-bin)',
                             default=False)
 
         self.args = parser.parse_args()
 
 
     def _initVendorDir(self):
-        self.vendorDir = self.DEFAULT_VENDOR_DIR
+        if 'config' in self.metadata and 'vendor-dir' in self.metadata['config'] and self.metadata['config']['vendor-dir']:
+            self.vendorDir = self.metadata['config']['vendor-dir']
+        else:
+            self.vendorDir = self.DEFAULT_VENDOR_DIR
 
         if self.args.verbose:
             print 'composer-install: _initVendorDir: vendorDir = "%s"' % self.vendorDir
@@ -145,10 +151,7 @@ class ComposerInstall:
         # composerDir
         #
 
-        self.composerDir = self.DEFAULT_COMPOSER_DIR
-
-        if self.args.composer_dir:
-            self.composerDir = self.args.composer_dir
+        self.composerDir = self.args.composer_dir if self.args.composer_dir else self.DEFAULT_COMPOSER_DIR
 
         if self.args.verbose:
             print 'composer-install: _installComposerDir: composerDir = "%s"' % self.composerDir
@@ -166,7 +169,7 @@ class ComposerInstall:
 
 
     def _initPackageDirs(self):
-        if not self.composerDir:
+        if self.noPackageDir:
             return
 
         #
@@ -176,7 +179,7 @@ class ComposerInstall:
         self.packageDir = self.composerDir + os.sep + self.metadata['name']
 
         if self.args.verbose:
-            print 'package-install: _installPackageDir: packageDir = "%s"' % self.packageDir
+            print 'composer-install: _installPackageDir: packageDir = "%s"' % self.packageDir
 
         #
         # buildrootPackageDir
@@ -185,7 +188,7 @@ class ComposerInstall:
         self.buildrootPackageDir = self.RPM_BUILD_ROOT + self.packageDir
 
         if self.args.verbose:
-            print 'package-install: _installPackageDir: buildrootPackageDir = "%s"' % self.buildrootPackageDir
+            print 'composer-install: _installPackageDir: buildrootPackageDir = "%s"' % self.buildrootPackageDir
 
         os.makedirs(self.buildrootPackageDir, 0755)
 
@@ -198,10 +201,7 @@ class ComposerInstall:
         # sysBinDir
         #
 
-        self.sysBinDir = self.DEFAULT_SYS_BIN_DIR
-
-        if self.args.sys_bin_dir:
-            self.sysBinDir = self.args.sys_bin_dir
+        self.sysBinDir = self.args.sys_bin_dir if self.args.sys_bin_dir else self.DEFAULT_SYS_BIN_DIR
 
         if self.args.verbose:
             print 'composer-install: _installBin: sysBinDir = "%s"' % self.sysBinDir
@@ -229,7 +229,8 @@ class ComposerInstall:
         # Create auto-load files
         subprocess.check_call(self.args.composer + ' --no-ansi dump-autoload', shell=True)
 
-        subprocess.check_call('cp -pr * ' + self.buildrootPackageDir, shell=True)
+        if not self.noPackageDir:
+            subprocess.check_call('cp -pr * ' + self.buildrootPackageDir, shell=True)
 
         self._installBin()
 
