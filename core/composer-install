@@ -176,7 +176,10 @@ class ComposerInstall:
         # packageDir
         #
 
-        self.packageDir = self.composerDir + os.sep + self.metadata['name']
+        self.packageDir = os.path.join(self.composerDir, self.metadata['name'])
+
+	if 'target-dir' in self.metadata and self.metadata['target-dir']:
+            self.packageDir = os.path.join(self.packageDir, self.metadata['target-dir'])
 
         if self.args.verbose:
             print 'composer-install: _installPackageDir: packageDir = "%s"' % self.packageDir
