@@ -19,8 +19,6 @@ Source0:        %{url}/archive/%{github_version}.tar.gz#/%{composer_vendor}-%{co
 BuildArch:      noarch
 BuildRequires:  php-composer
 
-# phpci
-Requires:       php-pcre
 
 %description
 MIT-licensed pure-PHP implementations of an arbitrary-precision integer
@@ -42,6 +40,10 @@ WARNING: This is just a development RPM.  Please submit issues at
 
 %install
 %{composer_install}
+
+
+%check
+phpunit -d date.timezone=UTC
 
 
 %files
