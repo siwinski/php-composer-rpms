@@ -15,9 +15,9 @@ AutoReqProv: no
 %global github_owner         composer
 %global github_name          composer
 %global github_version       1.0.0
-%global github_version_alpha alpha7
-%global github_commit        3e6afd8975b6ff6eb3045ba00e532d6c0e302fe6
-%global github_date          20130504
+%global github_version_alpha alpha8
+%global github_commit        1eb1df44a97fb2daca1bb8b007f3bee012f0aa46
+%global github_date          20140106
 
 %if !0%{?github_tagged}
 %global github_release %{github_date}git%(c=%{github_commit}; echo ${c:0:7})
@@ -150,9 +150,6 @@ sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
 # No self update
 rm -f src/Composer/Command/SelfUpdateCommand.php
 sed '/SelfUpdateCommand/d' -i src/Composer/Console/Application.php
-
-# Fix rpmlint warnings
-find . -name "*.php" -executable | xargs chmod -x
 
 # Update bin shebang
 sed 's#/usr/bin/env php#%{_bindir}/php#' -i bin/composer
