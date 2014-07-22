@@ -1,48 +1,61 @@
 # See WARNING notes in %%description
 
+#
+# RPM spec file for composer
+#
+# Copyright (c) 2013-2014 Shawn Iwinski <shawn.iwinski@gmail.com>
+#
+# License: MIT
+# http://opensource.org/licenses/MIT
+#
+# Please preserve changelog entries
+#
+
 # Disable automatic dependency processing
 # (prevents endless loop if php-composer is already installed on buildsys)
 AutoReqProv: no
 
-# For now, disable tests by default
-# Tests are only run with rpmbuild --with tests
-%global with_tests           %{?_with_tests:1}%{!?_with_tests:0}
+%global github_owner       composer
+%global github_name        composer
+%global github_version     1.0.0
+%global github_version_pre alpha8
+%global github_commit      1eb1df44a97fb2daca1bb8b007f3bee012f0aa46
 
-# 1 = Tagged version
-# 0 or undefined = Snapshot version
-%global github_tagged        1
-
-%global github_owner         composer
-%global github_name          composer
-%global github_version       1.0.0
-%global github_version_alpha alpha8
-%global github_commit        1eb1df44a97fb2daca1bb8b007f3bee012f0aa46
-%global github_date          20140106
+%global composer_vendor    composer
+%global composer_project   composer
 
 %if !0%{?github_tagged}
-%global github_release %{github_date}git%(c=%{github_commit}; echo ${c:0:7})
+%global github_release git%(c=%{github_commit}; echo ${c:0:7})
 %endif
 
+# "php": ">=5.3.2"
 %global php_min_ver        5.3.2
-
-%global jsonlint_min_ver   1.0.0
-%global jsonlint_max_ver   2.0.0
-
+# "seld/jsonlint": "1.*"
+%global jsonlint_min_ver   1.0
+%global jsonlint_max_ver   2.0
+# "justinrainbow/json-schema": "1.1.*"
 %global jsonschema_min_ver 1.1.0
 # DEBUG
 #%global jsonschema_max_ver 1.2.0
 %global jsonschema_max_ver 2.0
+# "symfony/console": "~2.3",
+# "symfony/finder": "~2.2",
+# "symfony/process": "~2.1"
+%global symfony_min_ver    2.3
+%global symfony_max_ver    3.0
 
-%global symfony_min_ver    2.1.0
-%global symfony_max_ver    3.0.0
+%global composer   %{_datadir}/composer
 
-%global composer           %{_datadir}/composer
-%global composer_vendor    composer
-%global composer_project   composer
+%global macros_dir %(d=%{_rpmconfigdir}/macros.d; [ -d $d ] || d=%{_sysconfdir}/rpm; echo $d)
+%{!?__phpunit: %global __phpunit %{_bindir}/phpunit}
 
-Name:          php-composer
+# For now, disable tests by default
+# Tests are only run with rpmbuild --with tests
+%global with_tests %{?_with_tests:1}%{!?_with_tests:0}
+
+Name:          composer
 Version:       %{github_version}
-Release:       0.4%{?github_version_alpha:.%{github_version_alpha}}%{?github_release:.%{github_release}}%{?dist}
+Release:       0.5%{?github_version_pre:.%{github_version_pre}}%{?github_release:.%{github_release}}%{?dist}
 Summary:       Dependency Manager for PHP
 
 Group:         Development/Libraries
@@ -50,71 +63,73 @@ License:       MIT
 URL:           http://getcomposer.org
 Source0:       https://github.com/%{github_owner}/%{github_name}/archive/%{github_commit}/%{name}-%{github_version}-%{github_commit}.tar.gz
 # Required only for bootstrapping/build
-Source1:       http://getcomposer.org/download/1.0.0-alpha7/composer.phar
+Source1:       http://getcomposer.org/download/%{version}%{?github_version_pre:-%{github_version_pre}}/composer.phar
 # RPM "magic"
-Source2:       macros.composer
-Source3:       composer.attr
-Source4:       composer.prov
-Source5:       composer.req
-Source6:       composer-fixreq
-Source7:       composer-install
-
-# Allow compatibility with RPM < 4.9 (no fileattrs)
-Patch0:        php-composer-rpm-no-fileattrs.patch
+Source2:       macros.%{name}
+Source3:       %{name}.attr
+Source4:       %{name}.prov
+Source5:       %{name}.req
+Source6:       %{name}-fixreq
+Source7:       %{name}-install
 
 BuildArch:     noarch
-
-# need this for test suite
+%if %{with_tests}
+# For tests: composer.json
 BuildRequires:  php-phpunit-PHPUnit
-BuildRequires:  php-jsonlint >= %{jsonlint_min_ver}
-BuildRequires:  php-jsonlint <  %{jsonlint_max_ver}
-BuildRequires:  php-JsonSchema >= %{jsonschema_min_ver}
-BuildRequires:  php-JsonSchema <  %{jsonschema_max_ver}
-BuildRequires:  php-pear(pear.symfony.com/Console) >= %{symfony_min_ver}
-BuildRequires:  php-pear(pear.symfony.com/Console) <  %{symfony_max_ver}
-BuildRequires:  php-pear(pear.symfony.com/Finder) >= %{symfony_min_ver}
-BuildRequires:  php-pear(pear.symfony.com/Finder) <  %{symfony_max_ver}
-BuildRequires:  php-pear(pear.symfony.com/Process) >= %{symfony_min_ver}
-BuildRequires:  php-pear(pear.symfony.com/Process) <  %{symfony_max_ver}
+BuildRequires:  php-jsonlint        >= %{jsonlint_min_ver}
+BuildRequires:  php-jsonlint        <  %{jsonlint_max_ver}
+BuildRequires:  php-JsonSchema      >= %{jsonschema_min_ver}
+BuildRequires:  php-JsonSchema      <  %{jsonschema_max_ver}
+BuildRequires:  php-symfony-Console >= %{symfony_min_ver}
+BuildRequires:  php-symfony-Console <  %{symfony_max_ver}
+BuildRequires:  php-symfony-Finder  >= %{symfony_min_ver}
+BuildRequires:  php-symfony-Finder  <  %{symfony_max_ver}
+BuildRequires:  php-symfony-Process >= %{symfony_min_ver}
+BuildRequires:  php-symfony-Process <  %{symfony_max_ver}
+# For tests: phpcompatinfo (computed from version 1.0.0-alpha8)
+%endif
 
-Requires:      php-common >= %{php_min_ver}
-Requires:      php-jsonlint >= %{jsonlint_min_ver}
-Requires:      php-jsonlint <  %{jsonlint_max_ver}
-Requires:      php-JsonSchema >= %{jsonschema_min_ver}
-Requires:      php-JsonSchema <  %{jsonschema_max_ver}
-Requires:      php-pear(pear.symfony.com/Console) >= %{symfony_min_ver}
-Requires:      php-pear(pear.symfony.com/Console) <  %{symfony_max_ver}
-Requires:      php-pear(pear.symfony.com/Finder) >= %{symfony_min_ver}
-Requires:      php-pear(pear.symfony.com/Finder) <  %{symfony_max_ver}
-Requires:      php-pear(pear.symfony.com/Process) >= %{symfony_min_ver}
-Requires:      php-pear(pear.symfony.com/Process) <  %{symfony_max_ver}
-# phpci
+# composer.json
+Requires:      php(language)       >= %{php_min_ver}
+Requires:      php-jsonlint        >= %{jsonlint_min_ver}
+Requires:      php-jsonlint        <  %{jsonlint_max_ver}
+Requires:      php-JsonSchema      >= %{jsonschema_min_ver}
+Requires:      php-JsonSchema      <  %{jsonschema_max_ver}
+Requires:      php-symfony-Console >= %{symfony_min_ver}
+Requires:      php-symfony-Console <  %{symfony_max_ver}
+Requires:      php-symfony-Finder  >= %{symfony_min_ver}
+Requires:      php-symfony-Finder  <  %{symfony_max_ver}
+Requires:      php-symfony-Process >= %{symfony_min_ver}
+Requires:      php-symfony-Process <  %{symfony_max_ver}
+# phpcompatinfo (computed from version 1.0.0-alpha8)
+Requires:      php-ctype
 Requires:      php-curl
 Requires:      php-date
+Requires:      php-filter
 Requires:      php-hash
 Requires:      php-iconv
+Requires:      php-intl
 Requires:      php-json
 Requires:      php-libxml
 Requires:      php-mbstring
 Requires:      php-openssl
 Requires:      php-pcre
+Requires:      php-phar
 Requires:      php-reflection
 Requires:      php-simplexml
 Requires:      php-spl
 Requires:      php-tokenizer
 Requires:      php-xsl
 Requires:      php-zip
-%if 0%{?fedora}
-Requires:      php-filter
-Requires:      php-phar
-%endif
+Requires:      php-zlib
 # RPM build
 Requires:      python-argparse
 
-# Common package naming (php-composervendor-composerproject)
-Provides:      php-composer-composer = %{version}-%{release}
 # Virtual provide
 Provides:      php-composer(%{composer_vendor}/%{composer_project}) = %{version}
+# Rename
+Obsoletes:     php-composer < %{version}-%{release}
+Provides:      php-composer = %{version}-%{release}
 
 %description
 Composer is a tool for dependency management in PHP. It allows you to declare
@@ -127,19 +142,17 @@ WARNING: This is just a development RPM.  Please submit issues at
 
 
 %prep
-%setup -q -c
+%setup -qn %{github_name}-%{github_commit}
 
-cp %{SOURCE2} .
-cp %{SOURCE3} .
-cp %{SOURCE4} .
-cp %{SOURCE5} .
-cp %{SOURCE6} .
-cp %{SOURCE7} .
-
-# Allow compatibility with RPM < 4.9 (no fileattrs)
-%{!?_fileattrsdir:%patch0}
-
-cd %{github_name}-%{github_commit}
+# RPM "magic"
+mkdir rpm
+cp %{SOURCE2} \
+   %{SOURCE3} \
+   %{SOURCE4} \
+   %{SOURCE5} \
+   %{SOURCE6} \
+   %{SOURCE7} \
+   rpm
 
 # Use system libraries
 sed -e "s#__DIR__.'/../../vendor/symfony/'#'%pear_phpdir/Symfony/Component/'#" \
@@ -173,16 +186,16 @@ php %{SOURCE1} dump-autoload
 %install
 pushd %{github_name}-%{github_commit}
 
-mkdir -p -m 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
+mkdir -pm 0755 %{buildroot}%{composer}/%{composer_vendor}/%{composer_project} %{buildroot}%{_bindir}
 cp -rp {bin,res,src,tests,vendor} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
 cp -a {composer.*,phpunit.xml.dist} %{buildroot}%{composer}/%{composer_vendor}/%{composer_project}/
 
 # Bin
-mkdir -p -m 0755 %{buildroot}/%{_bindir}
+mkdir -pm 0755 %{buildroot}/%{_bindir}
 ln -s %{composer}/%{composer_vendor}/%{composer_project}/bin/composer %{buildroot}%{_bindir}/composer
 
 # Cache
-mkdir -p -m 0777 %{buildroot}/%{_prefix}/cache/composer
+mkdir -pm 0777 %{buildroot}/%{_prefix}/cache/composer
 
 # symlink generic autoloader to include path
 ln -s %{composer}/%{composer_vendor}/%{composer_project}/vendor %{buildroot}%{composer}/vendor
@@ -190,30 +203,28 @@ ln -s %{composer}/%{composer_vendor}/%{composer_project}/vendor %{buildroot}%{co
 popd
 
 # RPM "magic"
-mkdir -p -m 0755 %{buildroot}%{_sysconfdir}/rpm
-install -p -m 0644 macros.composer %{buildroot}%{_sysconfdir}/rpm/
-mkdir -p -m 0755 %{buildroot}%{_rpmconfigdir}/fileattrs
-install -p -m 0644 composer.attr %{buildroot}%{_rpmconfigdir}/fileattrs/
-install -p -m 0755 composer.prov %{buildroot}%{_rpmconfigdir}/
-install -p -m 0755 composer.req %{buildroot}%{_rpmconfigdir}/
-install -p -m 0755 composer-fixreq %{buildroot}%{_rpmconfigdir}/
-install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
+## Macros
+mkdir -pm 0755 %{buildroot}%{macrosdir}
+install -pm 0644 rpm/macros.%{name} %{buildroot}%{macrosdir}/
+## Fileattrs
+mkdir -pm 0755 %{buildroot}%{_rpmconfigdir}/fileattrs
+install -pm 0644 rpm/%{name}.attr    %{buildroot}%{_rpmconfigdir}/fileattrs/
+install -pm 0755 rpm/%{name}.prov    %{buildroot}%{_rpmconfigdir}/
+install -pm 0755 rpm/%{name}.req     %{buildroot}%{_rpmconfigdir}/
 
 
 %check
 %if %{with_tests}
-    cd %{github_name}-%{github_commit}
-    phpunit -c tests/complete.phpunit.xml -d date.timezone=UTC
+    %{__phpunit} -c tests/complete.phpunit.xml -d date.timezone=UTC
 %else
 : Tests skipped, missing '--with tests' option
 %endif
 
 
 %files
-%doc %{github_name}-%{github_commit}/LICENSE
-%doc %{github_name}-%{github_commit}/*.md
-%doc %{github_name}-%{github_commit}/PORTING_INFO
-%doc %{github_name}-%{github_commit}/doc
+%{!?_licensedir:%global license %%doc}
+%license LICENSE
+%doc *.md doc
 %{composer}/vendor
 %dir %{composer}
 %dir %{composer}/%{composer_vendor}
@@ -221,12 +232,10 @@ install -p -m 0755 composer-install %{buildroot}%{_rpmconfigdir}/
 %{_bindir}/composer
 %dir %{_prefix}/cache/composer
 # RPM "magic"
-%{_sysconfdir}/rpm/macros.composer
-%{_rpmconfigdir}/fileattrs/composer.attr
-%{_rpmconfigdir}/composer.prov
-%{_rpmconfigdir}/composer.req
-%{_rpmconfigdir}/composer-fixreq
-%{_rpmconfigdir}/composer-install
+%{macrosdir}/%{name}.composer
+%{_rpmconfigdir}/fileattrs/%{name}.attr
+%{_rpmconfigdir}/%{name}.prov
+%{_rpmconfigdir}/%{name}.req
 
 
 %changelog
